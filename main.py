@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from matplotlib import container
-from database import Database
+from databaseSQLite3 import Database
 import tkinter.simpledialog
 from network import NetworkCalculator
 
@@ -57,8 +57,8 @@ class LoginWindow:
         username = self.username_entry.get().strip()
         password = self.password_entry.get()
 
-        if Database.verifier_login(username, password):
-            role = Database.verifier_login(username , password)
+        if Database.check_login(username, password):
+            role = Database.check_login(username , password)
             self.lancer_dashboard(role)
         else:
             messagebox.showerror("Erreur", "Identifiants incorrects")
