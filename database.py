@@ -1,24 +1,41 @@
-import mysql.connector
+import sqlite3
+import os.path
 import bcrypt
 
-
 class Database:
+    #Amine Bouaziz
     @staticmethod
     def get_db_connection():
-        return mysql.connector.connect(
-            host="localhost", 
-            user="root",
-            password="",
-            database="FINDMYIP"
-        )
+        if (os.path.isfile("FINDMYIP.db") == False):
+            Database.create_db()
+        return sqlite3.connect("FINDMYIP.db")
+
+    #Amine Bouaziz
     @staticmethod
-    def verifier_login(username , password):
+    def create_db():
+        conn = sqlite3.connect("FINDMYIP.db")
+        cursor = conn.cursor()
+
+        create_table_query = """create table if not exists userInfo(
+            nameUser varchar(100) not null, 
+            passwordUser varchar(100) not null, 
+            role varchar(100) not null default ('user'), 
+            primary key (nameUser))"""
+        cursor.execute(create_table_query)
+        cursor.execute("insert into userInfo values (?,?,?)", 
+            ('firstadmin', '$2b$12$9bKppilobc0wqkG9VnjZ3uHjOqbRNT8C8TCeckF/OodN49peqRl.W', 'admin'))
+        conn.commit()
+        conn.close()       
+
+    #Amine Bouaziz
+    @staticmethod
+    def check_login(username , password):
         try :
             conn = Database.get_db_connection()
             cursor = conn.cursor()
-            query = "SELECT passwordUser  , role FROM userInfo WHERE nameUser = %s"
-            
+            query = "select passwordUser, role from userInfo where nameUser = ?"            
             cursor.execute(query, (username,))
+
             result = cursor.fetchone()
             hashed_from_db = result[0]
             role = result[1]
@@ -35,10 +52,10 @@ class Database:
             print(f"erreur de connexion: {e}")
             return False
         finally:
-            if 'conn' in locals() and conn.is_connected():
+            if 'conn' in locals() and conn.cursor():
                 conn.close()
-                cursor.close()
-                
+
+    #Amine Bouaziz
     @staticmethod
     def enregister_user(username , password):
         try : 
@@ -47,15 +64,12 @@ class Database:
             
             salt = bcrypt.gensalt()
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
-            
-            query = "INSERT INTO userInfo (nameUser, passwordUser) VALUES (%s, %s)"
-            cursor.execute(query, (username, hashed_password))
+            cursor.execute("insert into userInfo (nameUser, passwordUser) values (?,?)", (username, hashed_password))
             conn.commit()
             return True
         except Exception as e:
             print(f"erreur d'enregistrement: {e}")
             return False
         finally:
-            if 'conn' in locals() and conn.is_connected():
+            if 'conn' in locals() and conn.cursor():
                 conn.close()
-                cursor.close()

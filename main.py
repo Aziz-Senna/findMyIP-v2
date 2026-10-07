@@ -1,9 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-
-from matplotlib import container
-from databaseSQLite3 import Database
-import tkinter.simpledialog
+from database import Database
 from network import NetworkCalculator
 
 
