@@ -164,7 +164,7 @@ class FindMyIPApp:
                 lbl_res.config(text=msg, fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")
-        tk.Button(win, text="analyse", command=analyse).pack(pady=10)
+        tk.Button(win, text="Analyser", command=analyse).pack(pady=10)
         
     def open_class_mask(self):
         win= tk.Toplevel(self.root)
@@ -181,7 +181,7 @@ class FindMyIPApp:
                 lbl_res.config(text=f"Classe : {classe}\nMasque par défaut : {masque}", fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")     
-        tk.Button(win, text="get Masque", command=get).pack(pady=10)
+        tk.Button(win, text="Obtenir Masque", command=get).pack(pady=10)
 
     def open_subnetting(self):
         win = tk.Toplevel(self.root)
@@ -200,7 +200,7 @@ class FindMyIPApp:
             res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
             if err: messagebox.showerror("Erreur", err)
             else:
-                txt = f"Réseau Classful : {res['reseau_classful']}\nSous-Réseau : {res['sous_reseau']}"
+                txt = f"Réseau Classfull : {res['reseau_classfull']}\nSous-Réseau : {res['sous_reseau']}"
                 lbl_res.config(text=txt, fg="blue")
 
         tk.Button(win, text="calculate", command=calculate).pack()
