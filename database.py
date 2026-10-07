@@ -25,6 +25,7 @@ class Database:
         cursor.execute("insert into userInfo values (?,?,?)", 
             ('firstadmin', '$2b$12$9bKppilobc0wqkG9VnjZ3uHjOqbRNT8C8TCeckF/OodN49peqRl.W', 'admin'))
         conn.commit()
+        cursor.close()
         conn.close()       
 
     #Amine Bouaziz
@@ -33,7 +34,9 @@ class Database:
         try :
             conn = Database.get_db_connection()
             cursor = conn.cursor()
-            query = "select passwordUser, role from userInfo where nameUser = ?"            
+            
+            #J'ai juste changé le %s à la fin de la requête query par ?
+            query = "select passwordUser, role from userInfo where nameUser = ?"           
             cursor.execute(query, (username,))
 
             result = cursor.fetchone()
@@ -53,7 +56,10 @@ class Database:
             return False
         finally:
             if 'conn' in locals() and conn.cursor():
+                #Il fallait inverser l'ordre de fermeture entre conn et cursor.
+                cursor.close()
                 conn.close()
+                
 
     #Amine Bouaziz
     @staticmethod
@@ -72,4 +78,6 @@ class Database:
             return False
         finally:
             if 'conn' in locals() and conn.cursor():
+                #Il fallait inverser l'ordre de fermeture entre conn et cursor.
+                cursor.close()
                 conn.close()
