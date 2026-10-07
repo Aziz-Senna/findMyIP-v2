@@ -26,7 +26,7 @@ class Database:
             ('firstadmin', '$2b$12$9bKppilobc0wqkG9VnjZ3uHjOqbRNT8C8TCeckF/OodN49peqRl.W', 'admin'))
         conn.commit()
         cursor.close()
-        conn.close()       
+        conn.close()      
 
     #Amine Bouaziz
     @staticmethod
@@ -34,7 +34,7 @@ class Database:
         try :
             conn = Database.get_db_connection()
             cursor = conn.cursor()
-            
+
             #J'ai juste changé le %s à la fin de la requête query par ?
             query = "select passwordUser, role from userInfo where nameUser = ?"           
             cursor.execute(query, (username,))
@@ -63,7 +63,7 @@ class Database:
 
     #Amine Bouaziz
     @staticmethod
-    def enregister_user(username , password):
+    def save_user(username , password):
         try : 
             conn = Database.get_db_connection()
             cursor = conn.cursor()

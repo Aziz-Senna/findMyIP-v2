@@ -1,7 +1,7 @@
 class NetworkCalculator:
     
     @staticmethod
-    def generer_donnees_masques():
+    def generate_datas_masks():
         liste_masques = []
         
         for i in range(8, 31):
@@ -25,7 +25,7 @@ class NetworkCalculator:
         return liste_masques
     
     @staticmethod
-    def verifier_ip(ip_input):
+    def check_ip(ip_input):
         ip = ip_input.strip().replace(" ", "")
         if len(ip) < 7 or len(ip) > 15:
             return False
@@ -48,7 +48,7 @@ class NetworkCalculator:
             return False
         
     @staticmethod
-    def analyser_ip(ip_input):
+    def analyse_ip(ip_input):
         octets = [int(o) for o in ip_input.split(".")]
         first = octets[0]
         second = octets[1]
@@ -84,7 +84,7 @@ class NetworkCalculator:
         }
     
     @staticmethod
-    def obtenir_masque_classe(ip_input):
+    def get_mask_class(ip_input):
         try:
             octets = ip_input.split(".")
             premier_octet = int(octets[0])
@@ -105,7 +105,7 @@ class NetworkCalculator:
             return "Erreur", "Format invalide"
     
     @staticmethod
-    def calculer_ids_reseau(ip_input, masque_input):
+    def compute_adress_network(ip_input, masque_input):
         try:
             ip_octets = [int(i) for i in ip_input.split(".")]
             mask_octets = [int(m) for m in masque_input.split(".")]
@@ -135,7 +135,7 @@ class NetworkCalculator:
             return None, f"Erreur de calcul : {e}"
         
     @staticmethod
-    def tester_communication(ip1_s, mask1_s, ip2_s, mask2_s):
+    def test_communication(ip1_s, mask1_s, ip2_s, mask2_s):
         try:
             i1 = [int(i) for i in ip1_s.split(".")]
             m1 = [int(m) for m in mask1_s.split(".")]

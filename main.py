@@ -38,7 +38,7 @@ class LoginWindow:
                                   relief="flat", bg="#f4f7f9", fg="#3498db", font=("Segoe UI", 9))
         self.btn_show.pack(anchor="e")
 
-        tk.Button(self.root, text="SE CONNECTER", command=self.valider_connexion,
+        tk.Button(self.root, text="SE CONNECTER", command=self.validate_connexion,
                   bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"), 
                   relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")
 
@@ -50,17 +50,17 @@ class LoginWindow:
             self.password_entry.config(show="*")
             self.btn_show.config(text="Afficher le mot de passe")
 
-    def valider_connexion(self):
+    def validate_connexion(self):
         username = self.username_entry.get().strip()
         password = self.password_entry.get()
 
         if Database.check_login(username, password):
             role = Database.check_login(username , password)
-            self.lancer_dashboard(role)
+            self.execute_dashbord(role)
         else:
             messagebox.showerror("Erreur", "Identifiants incorrects")
 
-    def lancer_dashboard(self, role):
+    def execute_dashbord(self, role):
         for widget in self.root.winfo_children():
             widget.destroy()
         FindMyIPApp(self.root, role)
@@ -88,17 +88,17 @@ class FindMyIPApp:
         container.pack(expand=True)
 
         buttons = [
-            ("Générateur de Masques", self.ouvrir_generateur),
-            ("Validateur Format IP", self.ouvrir_validateur),
-            ("Analyseur de Propriétés", self.ouvrir_analyseur),
-            ("Masque de Classe", self.ouvrir_masque_classe),
-            ("Réseau & Sous-Réseau", self.ouvrir_subnetting),
-            ("Vérificateur Connexion", self.ouvrir_comm),
-            ("Infos Application", self.ouvrir_infos)
+            ("Générateur de Masques", self.open_generator),
+            ("Validateur Format IP", self.open_validator),
+            ("Analyseur de Propriétés", self.open_analysor),
+            ("Masque de Classe", self.open_class_mask),
+            ("Réseau & Sous-Réseau", self.open_subnetting),
+            ("Vérificateur Connexion", self.open_comm),
+            ("Infos Application", self.open_informations)
         ]
         
         if self.role == "admin":
-            buttons.insert(6,("Ajouter un Utilisateur", self.ouvrir_ajout_user))
+            buttons.insert(6,("Ajouter un Utilisateur", self.open_add_user))
 
         for i, (text, func) in enumerate(buttons):
             row, col = divmod(i, 2)
@@ -112,12 +112,12 @@ class FindMyIPApp:
 
     # --- ACTIONS ---
 
-    def ouvrir_generateur(self):
+    def open_generator(self):
         win = tk.Toplevel(self.root)
         win.title("Tableau des Masques")
         win.geometry("900x600")
         
-        donnees = NetworkCalculator.generer_donnees_masques()
+        donnees = NetworkCalculator.generate_datas_masks()
         
         # Affichage dans un tableau (Treeview) pour que ce soit pro
         cols = ("prefixe", "decimal", "binaire")
@@ -131,7 +131,7 @@ class FindMyIPApp:
         
         tree.pack(expand=True, fill="both", padx=10, pady=10)
 
-    def ouvrir_validateur(self):
+    def open_validator(self):
         win = tk.Toplevel(self.root)
         win.title("Validateur de Format IP")
         win.geometry("400x200")
@@ -139,16 +139,16 @@ class FindMyIPApp:
         ent_ip = tk.Entry(win); ent_ip.pack()
         lbl_res = tk.Label(win, text="", pady=20)
         lbl_res.pack()
-        def valider():
+        def validate():
             ip = ent_ip.get()
-            if NetworkCalculator.verifier_ip(ip):
+            if NetworkCalculator.check_ip(ip):
                 lbl_res.config(text=f"{ip} est une adresse IP valide.", fg="green")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")
 
-        tk.Button(win, text="Valider", command=valider).pack(pady=10)
+        tk.Button(win, text="validate", command=validate).pack(pady=10)
 
-    def ouvrir_analyseur(self):
+    def open_analysor(self):
         win= tk.Toplevel(self.root)
         win.title("Analyseur de Propriétés")
         win.geometry("400x300")
@@ -156,17 +156,17 @@ class FindMyIPApp:
         ent_ip = tk.Entry(win); ent_ip.pack()
         lbl_res = tk.Label(win, text="", pady=20)
         lbl_res.pack()
-        def analyser():
+        def analyse():
             ip = ent_ip.get()
-            if ip and NetworkCalculator.verifier_ip(ip):
-                res = NetworkCalculator.analyser_ip(ip)
+            if ip and NetworkCalculator.check_ip(ip):
+                res = NetworkCalculator.analyse_ip(ip)
                 msg = f"Classe : {res['classe']}\nType : {res['type']}\nÉtat : {res['status']}"
                 lbl_res.config(text=msg, fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")
-        tk.Button(win, text="Analyser", command=analyser).pack(pady=10)
+        tk.Button(win, text="analyse", command=analyse).pack(pady=10)
         
-    def ouvrir_masque_classe(self):
+    def open_class_mask(self):
         win= tk.Toplevel(self.root)
         win.title("Masque de Classe")
         win.geometry("400x200")
@@ -174,16 +174,16 @@ class FindMyIPApp:
         ent_ip = tk.Entry(win); ent_ip.pack()
         lbl_res = tk.Label(win, text="", pady=20)
         lbl_res.pack()
-        def obtenir():
+        def get():
             ip = ent_ip.get()
-            if ip and NetworkCalculator.verifier_ip(ip):
-                classe, masque = NetworkCalculator.obtenir_masque_classe(ip)
+            if ip and NetworkCalculator.check_ip(ip):
+                classe, masque = NetworkCalculator.get_mask_class(ip)
                 lbl_res.config(text=f"Classe : {classe}\nMasque par défaut : {masque}", fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")     
-        tk.Button(win, text="Obtenir Masque", command=obtenir).pack(pady=10)
+        tk.Button(win, text="get Masque", command=get).pack(pady=10)
 
-    def ouvrir_subnetting(self):
+    def open_subnetting(self):
         win = tk.Toplevel(self.root)
         win.title("ID Réseau & Sous-Réseau")
         win.geometry("400x300")
@@ -196,16 +196,16 @@ class FindMyIPApp:
         lbl_res = tk.Label(win, text="", pady=20)
         lbl_res.pack()
 
-        def calculer():
-            res, err = NetworkCalculator.calculer_ids_reseau(ent_ip.get(), ent_m.get())
+        def calculate():
+            res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
             if err: messagebox.showerror("Erreur", err)
             else:
                 txt = f"Réseau Classful : {res['reseau_classful']}\nSous-Réseau : {res['sous_reseau']}"
                 lbl_res.config(text=txt, fg="blue")
 
-        tk.Button(win, text="Calculer", command=calculer).pack()
+        tk.Button(win, text="calculate", command=calculate).pack()
 
-    def ouvrir_comm(self):
+    def open_comm(self):
         win = tk.Toplevel(self.root)
         win.title("Test de Communication")
         win.geometry("450x400")
@@ -221,8 +221,8 @@ class FindMyIPApp:
         lbl_res = tk.Label(win, text="", pady=20, font=("Arial", 10, "bold"))
         lbl_res.pack()
 
-        def tester():
-            res, err = NetworkCalculator.tester_communication(e1_ip.get(), e1_m.get(), e2_ip.get(), e2_m.get())
+        def test():
+            res, err = NetworkCalculator.test_communication(e1_ip.get(), e1_m.get(), e2_ip.get(), e2_m.get())
             if err: lbl_res.config(text=err, fg="red")
             else:
                 m1_voit_m2, m2_voit_m1 = res
@@ -230,9 +230,9 @@ class FindMyIPApp:
                 color = "green" if (m1_voit_m2 and m2_voit_m1) else "orange"
                 lbl_res.config(text=f"M1 -> M2: {m1_voit_m2}\nM2 -> M1: {m2_voit_m1}\n\n{status}", fg=color)
 
-        tk.Button(win, text="Vérifier", command=tester, bg="#2980b9", fg="white").pack(pady=10)
+        tk.Button(win, text="Vérifier", command=test, bg="#2980b9", fg="white").pack(pady=10)
 
-    def ouvrir_ajout_user(self):
+    def open_add_user(self):
         win = tk.Toplevel(self.root)
         win.title("Ajouter un Utilisateur")
         win.geometry("400x300")
@@ -252,11 +252,11 @@ class FindMyIPApp:
         ent_pwd = tk.Entry(container, show="*", font=("Segoe UI", 11))
         ent_pwd.pack(fill="x", pady=5)
         
-        def enregistrer():
+        def save():
             user = ent_user.get().strip()
             pwd = ent_pwd.get()
             if user and pwd:
-                if Database.enregister_user(user, pwd):
+                if Database.save_user(user, pwd):
                     messagebox.showinfo("Succès", "Utilisateur enregistré !")
                     win.destroy()
                 else:
@@ -264,12 +264,12 @@ class FindMyIPApp:
             else:
                 messagebox.showwarning("Attention", "Remplis tous les champs.")
 
-        tk.Button(win, text="AJOUTER", command=enregistrer,
+        tk.Button(win, text="AJOUTER", command=save,
               bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"),
               relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")
         
 
-    def ouvrir_infos(self):
+    def open_informations(self):
         fenetre_info = tk.Toplevel(self.root)
         fenetre_info.title("Spécifications Techniques")
         fenetre_info.geometry("700x700")
@@ -291,14 +291,14 @@ class FindMyIPApp:
             "4. MASQUE DE CLASSE :\n"
             "   Donner le masque par défaut (Classful) selon la classe de l'IP.\n\n"
             "5. RÉSEAU ET SOUS-RÉSEAU :\n"
-            "   Calculer l'ID Réseau et l'ID Sous-réseau à partir de l'IP et du masque.\n\n"
+            "   calculate l'ID Réseau et l'ID Sous-réseau à partir de l'IP et du masque.\n\n"
             "6. VÉRIFICATION BILATÉRALE :\n"
             "   Déterminer si 2 IPs sont dans le même réseau :\n"
             "   -> Test A voit B : (IP_B appartient au réseau de A)\n"
             "   -> Test B voit A : (IP_A appartient au réseau de B)\n\n"
             "7. Ajouter un utilisateur :\n"
             "   -> Entrer les informations de l'utilisateur\n"
-            "   -> Valider les informations\n"
+            "   -> validate les informations\n"
         )
 
         label_cadre = tk.Label(fenetre_info, text=texte_complet, justify="left", 
