@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from database import Database
 from network import NetworkCalculator
+from datetime import datetime
 
 
 class LoginWindow:
@@ -111,8 +112,7 @@ class FindMyIPApp:
             btn.bind("<Leave>", lambda e, b=btn: b.config(bg="#ffffff"))
 
     # --- ACTIONS ---
-
-    def ouvrir_generateur(self):
+    def open_generator(self):
         win = tk.Toplevel(self.root)
         win.title("Tableau des Masques")
         win.geometry("900x600")
@@ -232,7 +232,7 @@ class FindMyIPApp:
 
         tk.Button(win, text="Vérifier", command=tester, bg="#2980b9", fg="white").pack(pady=10)
 
-    def ouvrir_ajout_user(self):
+    def open_add_user(self):
         win = tk.Toplevel(self.root)
         win.title("Ajouter un Utilisateur")
         win.geometry("400x300")
@@ -251,16 +251,65 @@ class FindMyIPApp:
         tk.Label(container, text="Mot de passe", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
         ent_pwd = tk.Entry(container, show="*", font=("Segoe UI", 11))
         ent_pwd.pack(fill="x", pady=5)
-        
-        def enregistrer():
+
+        #Amine Bouaziz
+        def is_date(pwd):
+            try:
+                #Si aucune exception n'a ete attrape alors il s'agit d'une date.
+                date = datetime.strptime(pwd, "%d/%m/%Y")
+                return True
+            except ValueError:
+                return False
+        #Amine Bouaziz
+        def contains_space(pwd):
+            for i in range (len(pwd)):
+                if(pwd[i] == chr(32)):
+                    return True
+            return False
+
+        #Amine Bouaziz
+        def contains_special_characters(pwd):
+            #Ajoute tous les caractères spéciaux dans une liste.
+            special_characters = {chr(i) for r in (range(33, 48), range(58, 65), range(91, 97)) for i in r}
+
+            #Source : https://www.askpython.com/python/set/python-sets-resolving-typeerror
+            special_characters = list(special_characters)        
+            respect_conditions_caracters = False
+
+            #Vérification des caractères spéciaux
+            for i in range(len(pwd)):
+                for j in range (len(special_characters)):
+                    if(pwd[i] == special_characters[j]):
+                        respect_conditions_caracters = True
+            return respect_conditions_caracters
+            
+        #Amine Bouaziz
+        def save():
             user = ent_user.get().strip()
             pwd = ent_pwd.get()
+
             if user and pwd:
-                if Database.enregister_user(user, pwd):
-                    messagebox.showinfo("Succès", "Utilisateur enregistré !")
-                    win.destroy()
+                #Vérification du mot de passe 
+                if (len(pwd))< 8:
+                    messagebox.showerror("Erreur", "Le mot de passe n'est pas assez long.\n" \
+                    "La taille du mdp doit être supérieur ou égal à 8.")
+
+                elif (contains_space(pwd)) == True:
+                    messagebox.showerror("Erreur", "Le mot de passe ne doit pas contenir d'espace.")
+
+                elif (pwd.isdigit()) == True or (pwd.isalpha()) == True or (contains_special_characters(pwd)) == False:
+                    messagebox.showerror("Erreur", 
+                        "Le mot de passe doit contenir des chiffres, des lettres et des caractères spéciaux.")
+
+                elif is_date(pwd) == True:
+                    messagebox.showerror("Erreur","Le mot de passe ne doit pas être une date de naissance.")                
                 else:
-                    messagebox.showerror("Erreur", "Échec de l'enregistrement.")
+                    #On teste l'enregistrement d'utilisateur
+                    if Database.save_user(user, pwd):
+                        messagebox.showinfo("Succès", "Utilisateur enregistré !")
+                        win.destroy()
+                    else:
+                        messagebox.showerror("Erreur", "Échec de l'enregistrement.")
             else:
                 messagebox.showwarning("Attention", "Remplis tous les champs.")
 
