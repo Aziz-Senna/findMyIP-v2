@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from database import Database
 from network import NetworkCalculator
-from datetime import datetime
 
 
 class LoginWindow:
@@ -142,12 +141,13 @@ class FindMyIPApp:
         lbl_res.pack()
         def validate():
             ip = ent_ip.get()
-            if NetworkCalculator.check_ip(ip):
+            if NetworkCalculator.check_ip(ip) == "True":
                 lbl_res.config(text=f"{ip} est une adresse IP valide.", fg="green")
             else:
-                lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")
+                #On récupère l'erreur.
+                lbl_res.config(text=f"{NetworkCalculator.check_ip(ip)}", fg="red")
 
-        tk.Button(win, text="validate", command=validate).pack(pady=10)
+        tk.Button(win, text="Valider", command=validate).pack(pady=10)
 
     def open_analysor(self):
         win= tk.Toplevel(self.root)
@@ -159,7 +159,7 @@ class FindMyIPApp:
         lbl_res.pack()
         def analyse():
             ip = ent_ip.get()
-            if ip and NetworkCalculator.check_ip(ip):
+            if ip and NetworkCalculator.check_ip(ip) == "True":
                 res = NetworkCalculator.analyse_ip(ip)
                 msg = f"Classe : {res['classe']}\nType : {res['type']}\nÉtat : {res['status']}"
                 lbl_res.config(text=msg, fg="blue")
@@ -177,13 +177,14 @@ class FindMyIPApp:
         lbl_res.pack()
         def get():
             ip = ent_ip.get()
-            if ip and NetworkCalculator.check_ip(ip):
+            if ip and NetworkCalculator.check_ip(ip) == "True":
                 classe, masque = NetworkCalculator.get_mask_class(ip)
                 lbl_res.config(text=f"Classe : {classe}\nMasque par défaut : {masque}", fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")     
         tk.Button(win, text="Obtenir Masque", command=get).pack(pady=10)
 
+    #Amine Bouaziz
     def open_subnetting(self):
         win = tk.Toplevel(self.root)
         win.title("ID Réseau & Sous-Réseau")
@@ -198,13 +199,17 @@ class FindMyIPApp:
         lbl_res.pack()
 
         def calculate():
-            res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
-            if err: messagebox.showerror("Erreur", err)
+            #Amine Bouaziz
+            #Si le format de l'adresse IP est correct
+            if NetworkCalculator.check_ip(ent_ip.get()) == "True":
+                res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
+                if err: messagebox.showerror("Erreur", err)
+                else:
+                    txt = f"Réseau Classfull : {res['reseau_classfull']}\nSous-Réseau : {res['sous_reseau']}"
+                    lbl_res.config(text=txt, fg="blue")
             else:
-                txt = f"Réseau Classfull : {res['reseau_classfull']}\nSous-Réseau : {res['sous_reseau']}"
-                lbl_res.config(text=txt, fg="blue")
-
-        tk.Button(win, text="calculate", command=calculate).pack()
+                err = messagebox.showerror("Erreur", NetworkCalculator.check_ip(ent_ip.get()))
+        tk.Button(win, text="Calculer", command=calculate).pack()
 
     def open_comm(self):
         win = tk.Toplevel(self.root)
@@ -253,66 +258,18 @@ class FindMyIPApp:
         ent_pwd = tk.Entry(container, show="*", font=("Segoe UI", 11))
         ent_pwd.pack(fill="x", pady=5)
         
-        #Amine Bouaziz
-        def is_date(pwd):
-            try:
-                #Si aucune exception n'a ete attrape alors il s'agit d'une date.
-                date = datetime.strptime(pwd, "%d/%m/%Y")
-                return True
-            except ValueError:
-                return False
-        #Amine Bouaziz
-        def contains_space(pwd):
-            for i in range (len(pwd)):
-                if(pwd[i] == chr(32)):
-                    return True
-            return False
-
-        #Amine Bouaziz
-        def contains_special_characters(pwd):
-            #Ajoute tous les caractères spéciaux dans une liste.
-            special_characters = {chr(i) for r in (range(33, 48), range(58, 65), range(91, 97)) for i in r}
-
-            #Source : https://www.askpython.com/python/set/python-sets-resolving-typeerror
-            special_characters = list(special_characters)        
-            respect_conditions_caracters = False
-
-            #Vérification des caractères spéciaux
-            for i in range(len(pwd)):
-                for j in range (len(special_characters)):
-                    if(pwd[i] == special_characters[j]):
-                        respect_conditions_caracters = True
-            return respect_conditions_caracters
-        
-        #Amine Bouaziz
         def save():
             user = ent_user.get().strip()
             pwd = ent_pwd.get()
-
             if user and pwd:
-                #Vérification du mot de passe 
-                if (len(pwd))< 8:
-                    messagebox.showerror("Erreur", "Le mot de passe n'est pas assez long.\n" \
-                    "La taille du mdp doit être supérieur ou égal à 8.")
-
-                elif (contains_space(pwd)) == True:
-                    messagebox.showerror("Erreur", "Le mot de passe ne doit pas contenir d'espace.")
-
-                elif (pwd.isdigit()) == True or (pwd.isalpha()) == True or (contains_special_characters(pwd)) == False:
-                    messagebox.showerror("Erreur", 
-                        "Le mot de passe doit contenir des chiffres, des lettres et des caractères spéciaux.")
-
-                elif is_date(pwd) == True:
-                    messagebox.showerror("Erreur","Le mot de passe ne doit pas être une date de naissance.")                
+                if Database.save_user(user, pwd):
+                    messagebox.showinfo("Succès", "Utilisateur enregistré !")
+                    win.destroy()
                 else:
-                    #On teste l'enregistrement d'utilisateur
-                    if Database.save_user(user, pwd):
-                        messagebox.showinfo("Succès", "Utilisateur enregistré !")
-                        win.destroy()
-                    else:
-                        messagebox.showerror("Erreur", "Échec de l'enregistrement.")
+                    messagebox.showerror("Erreur", "Échec de l'enregistrement.")
             else:
                 messagebox.showwarning("Attention", "Remplis tous les champs.")
+
         tk.Button(win, text="AJOUTER", command=save,
               bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"),
               relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")

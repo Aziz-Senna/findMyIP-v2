@@ -2,7 +2,7 @@ class NetworkCalculator:
     
     @staticmethod
     def generate_datas_masks():
-        list_masks = []
+        list_masques = []
         
         for i in range(8, 31):
             binary_mask = ""
@@ -17,35 +17,38 @@ class NetworkCalculator:
                 if (bit+1)%8 == 0 and bit < 31:
                     binary_mask += "."
                 
-            list_masks.append({
+            list_masques.append({
                 "prefixe": f"/{i:02d}",
                 "binaire": binary_mask,
                 "decimal": ".".join(str(part) for part in decimal_parts)
             })
-        return list_masks
-    
+        return list_masques
+
+    #Amine Bouaziz
+    #Initialement, la méthode retourne un bool mais on retourne plutôt l'erreur en string.
     @staticmethod
     def check_ip(ip_input):
         ip = ip_input.strip().replace(" ", "")
         if len(ip) < 7 or len(ip) > 15:
-            return False
+            return "La taille de l'adresse IP n'est pas correcte."
         bytes = ip.split(".")
         
         if len(bytes) != 4:
-            return False
+            return "L'adresse IP doit contenir quatre octets soit quatre parties décimales."
         
         try:
             for o in bytes:
                 if not o.isdigit():
-                    return False
+                    return "Un des octets n'est pas décimal."
                 value = int(o)
-                if value < 0 or value > 255:
-                    return False
+                #Pas de value < 0 car la methode isdigit() ne considère pas les négatives comme des chiffres dû au caractère -.
+                if value > 255:
+                    return "La valeur d'un des octets n'est pas comprise entre 0 et 255."
                 if len(o) > 1 and o[0] == '0':
-                    return False
-            return True
+                    return "Les octets du style 0xx ne sont pas acceptés."
+            return "True"
         except ValueError:
-            return False
+            return "False"
         
     @staticmethod
     def analyse_ip(ip_input):
@@ -130,7 +133,7 @@ class NetworkCalculator:
                 "classe": classe,
                 "reseau_classful": net_id,
                 "sous_reseau": subnet_id
-            }, None
+            }, None        
         except Exception as e:
             return None, f"Erreur de calcul : {e}"
         
