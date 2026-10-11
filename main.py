@@ -141,12 +141,12 @@ class FindMyIPApp:
         lbl_res.pack()
         def validate():
             ip = ent_ip.get()
-            if NetworkCalculator.check_ip(ip):
+            if NetworkCalculator.check_ip(ip) == "True":
                 lbl_res.config(text=f"{ip} est une adresse IP valide.", fg="green")
             else:
-                lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")
-
-        tk.Button(win, text="validate", command=validate).pack(pady=10)
+                #On récupère l'erreur.
+                lbl_res.config(text=f"{NetworkCalculator.check_ip(ip)}", fg="red")
+        tk.Button(win, text="Valider", command=validate).pack(pady=10)
 
     def open_analysor(self):
         win= tk.Toplevel(self.root)
@@ -158,7 +158,7 @@ class FindMyIPApp:
         lbl_res.pack()
         def analyse():
             ip = ent_ip.get()
-            if ip and NetworkCalculator.check_ip(ip):
+            if ip and NetworkCalculator.check_ip(ip) == "True":
                 res = NetworkCalculator.analyse_ip(ip)
                 msg = f"Classe : {res['classe']}\nType : {res['type']}\nÉtat : {res['status']}"
                 lbl_res.config(text=msg, fg="blue")
@@ -176,13 +176,14 @@ class FindMyIPApp:
         lbl_res.pack()
         def get():
             ip = ent_ip.get()
-            if ip and NetworkCalculator.check_ip(ip):
+            if ip and NetworkCalculator.check_ip(ip) == "True":
                 classe, masque = NetworkCalculator.get_mask_class(ip)
                 lbl_res.config(text=f"Classe : {classe}\nMasque par défaut : {masque}", fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")     
         tk.Button(win, text="Obtenir Masque", command=get).pack(pady=10)
 
+    #Amine Bouaziz
     def open_subnetting(self):
         win = tk.Toplevel(self.root)
         win.title("ID Réseau & Sous-Réseau")
@@ -197,13 +198,17 @@ class FindMyIPApp:
         lbl_res.pack()
 
         def calculate():
-            res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
-            if err: messagebox.showerror("Erreur", err)
+            #Amine Bouaziz
+            #Si le format de l'adresse IP est correct
+            if NetworkCalculator.check_ip(ent_ip.get()) == "True":
+                res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
+                if err: messagebox.showerror("Erreur", err)
+                else:
+                    txt = f"Réseau Classfull : {res['reseau_classfull']}\nSous-Réseau : {res['sous_reseau']}"
+                    lbl_res.config(text=txt, fg="blue")
             else:
-                txt = f"Réseau Classfull : {res['reseau_classfull']}\nSous-Réseau : {res['sous_reseau']}"
-                lbl_res.config(text=txt, fg="blue")
-
-        tk.Button(win, text="calculate", command=calculate).pack()
+                err = messagebox.showerror("Erreur", NetworkCalculator.check_ip(ent_ip.get()))
+        tk.Button(win, text="Calculer", command=calculate).pack()
 
     def open_comm(self):
         win = tk.Toplevel(self.root)
