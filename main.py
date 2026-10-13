@@ -5,6 +5,7 @@ from network import NetworkCalculator
 
 
 class LoginWindow:
+
     def __init__(self, root):
         self.root = root
         self.root.title("FINDMYIP - Connexion")
@@ -94,7 +95,8 @@ class FindMyIPApp:
             ("Masque de Classe", self.open_class_mask),
             ("Réseau & Sous-Réseau", self.open_subnetting),
             ("Vérificateur Connexion", self.open_comm),
-            ("Infos Application", self.open_informations)
+            ("Infos Application", self.open_informations), 
+            ("Se déconnecter", self.close_connexion)
         ]
         
         if self.role == "admin":
@@ -311,6 +313,37 @@ class FindMyIPApp:
                               font=("Courier New", 10), padx=20, pady=20, bg="white", relief="sunken")
         label_cadre.pack(expand=True, fill="both", padx=10, pady=10)
         tk.Button(fenetre_info, text="Compris", command=fenetre_info.destroy).pack(pady=10)
+
+    #Amine Bouaziz
+    def close_connexion(self):
+
+        win = tk.Toplevel(self.root)
+        win.resizable(False, False)
+        win.title("Déconnexion")
+        win.geometry("450x200")
+
+        def logout():
+            if (Database.check_logout()):
+                Database.check_logout()
+                for widget in self.root.winfo_children():
+                    widget.destroy()
+                self.root.destroy()
+                LoginWindow(tk.Tk())               
+            else:
+                messagebox.showerror("Erreur", "Impossible de se déconnecter.")
+
+        tk.Label(win, text="Êtes vous sûr de vouloir se déconnecter ?", font=("Segoe UI", 16, "bold"),
+                     bg="#f4f7f9", fg="#2c3e50").pack(pady=20)
+
+        frame = tk.Frame(win)
+        frame.pack(padx=10)
+
+        tk.Button(frame, text="Oui", command=logout
+            ,bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"), width=5, height=2).pack(side="left", padx=10)
+
+        tk.Button(frame, text="Non", command=win.destroy 
+            ,bg="#cc2e2e", fg="white", font=("Segoe UI", 12, "bold"), width=5, height=2).pack(side="left", padx=10)
+
 
 if __name__ == "__main__":
     root = tk.Tk()

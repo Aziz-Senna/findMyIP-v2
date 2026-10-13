@@ -3,11 +3,15 @@ import os.path
 import bcrypt
 
 class Database:
+
+    __isLoggIn = False
+
     #Amine Bouaziz
     @staticmethod
     def get_db_connection():
         if (os.path.isfile("FINDMYIP.db") == False):
             Database.create_db()
+        Database.__isLoggIn = True
         return sqlite3.connect("FINDMYIP.db")
 
     #Amine Bouaziz
@@ -81,3 +85,11 @@ class Database:
                 #Il fallait inverser l'ordre de fermeture entre conn et cursor.
                 cursor.close()
                 conn.close()
+
+    #Amine Bouaziz
+    @staticmethod
+    def check_logout():
+        if(Database.__isLoggIn == False):
+           return False
+        Database.__isLoggIn = False
+        return True
