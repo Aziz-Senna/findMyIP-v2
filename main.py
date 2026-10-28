@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from database import Database
 from network import NetworkCalculator
+from subnetting import SubnetCalculator
 from datetime import datetime
 
 class LoginWindow:
@@ -94,6 +95,13 @@ class FindMyIPApp:
             ("Analyseur de Propriétés", self.open_analysor),
             ("Masque de Classe", self.open_class_mask),
             ("Réseau & Sous-Réseau", self.open_subnetting),
+
+            #YAAL 01
+            #Date : 
+            #During : 
+            ("Découpe en Sous-Réseaux", self.ouvrir_decoupe),
+
+
             ("Vérificateur Connexion", self.open_comm),
             ("Infos Application", self.open_informations), 
             ("Se déconnecter", self.close_connexion)
@@ -185,7 +193,7 @@ class FindMyIPApp:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")     
         tk.Button(win, text="Obtenir Masque", command=get).pack(pady=10)
 
-    #AMBZ 01 
+
     def open_subnetting(self):
         win = tk.Toplevel(self.root)
         win.title("ID Réseau & Sous-Réseau")
@@ -200,7 +208,9 @@ class FindMyIPApp:
         lbl_res.pack()
 
         def calculate():
-            #AMBZ 01
+            #AMBZ 02
+            #Date : 11/10/2026
+            #During : 2minutes
             #Si le format de l'adresse IP est correct
             if NetworkCalculator.check_ip(ent_ip.get()) == "True":
                 res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
@@ -259,7 +269,9 @@ class FindMyIPApp:
         ent_pwd = tk.Entry(container, show="*", font=("Segoe UI", 11))
         ent_pwd.pack(fill="x", pady=5)
 
-        #AMBZ 01
+        #AMBZ 02
+        #Date : 10/10/2026
+        #During : 10secondes (car il vient de son ancien projet)
         def is_date(pwd):
             try:
                 #Si aucune exception n'a ete attrape alors il s'agit d'une date.
@@ -267,14 +279,19 @@ class FindMyIPApp:
                 return True
             except ValueError:
                 return False
-        #AMBZ 01
+            
+        #AMBZ 02
+        #Date : 10/10/2026
+        #During : 10secondes (car il vient de son ancien projet)
         def contains_space(pwd):
             for i in range (len(pwd)):
                 if(pwd[i] == chr(32)):
                     return True
             return False
 
-        #AMBZ 01
+        #AMBZ 02
+        #Date : 10/10/2026
+        #During : 1h
         def contains_special_characters(pwd):
             #Ajoute tous les caractères spéciaux dans une liste.
             special_characters = {chr(i) for r in (range(33, 48), range(58, 65), range(91, 97)) for i in r}
@@ -295,6 +312,9 @@ class FindMyIPApp:
             pwd = ent_pwd.get()
 
             if user and pwd:
+                #AMBZ 02
+                #Date : 10/10/2026
+                #During : 1h
                 #Vérification du mot de passe 
                 if (len(pwd))< 8:
                     messagebox.showerror("Erreur", "Le mot de passe n'est pas assez long.\n" \
@@ -332,7 +352,7 @@ class FindMyIPApp:
         fenetre_info.geometry("700x700")
         
         texte_complet = (
-            "les infos sur l'application\n"
+            "Les infos sur l'application\n"
             "" + "="*60 + "\n\n"
             "1. TABLEAU DES MASQUES :\n"
             "   Afficher tous les masques de /8 à /30 sous 3 formes :\n"
@@ -363,14 +383,61 @@ class FindMyIPApp:
         label_cadre.pack(expand=True, fill="both", padx=10, pady=10)
         tk.Button(fenetre_info, text="Compris", command=fenetre_info.destroy).pack(pady=10)
 
-    #AMBZ 01
+    #YAAL 01
+    #Date : 
+    #During : 
+    def ouvrir_decoupe(self):
+        # Nouvelle fenêtre par-dessus le menu principal
+        win = tk.Toplevel(self.root)
+        win.title("Découpe en Sous-Réseaux")
+        win.geometry("400x300")
+
+        # Champ 1 : l'adresse IP
+        tk.Label(win, text="Adresse IP :").pack(pady=5)
+        ent_ip = tk.Entry(win)
+        ent_ip.pack()
+
+        # Champ 2 : le nombre de sous-réseaux
+        tk.Label(win, text="Nombre de sous-réseaux :").pack(pady=5)
+        ent_nb = tk.Entry(win)
+        ent_nb.pack()
+                # Ce qui se passe quand on clique sur "Découper"
+        def decouper():
+            # On envoie les 2 champs à la calculatrice de subnetting.py
+            res, err = SubnetCalculator.decouper_sous_reseaux(ent_ip.get(), ent_nb.get())
+            if err:
+                # Problème : on affiche le message et on s'arrête là
+                messagebox.showerror("Erreur", err, parent=win)
+                return
+            # Tout va bien : on écrit le résumé dans le label
+            lbl_resume.config(text=(
+                f"Classe : {res['classe']}\n"
+                f"Réseau de départ : {res['reseau']}\n"
+                f"Masque de classe : {res['masque_classe']}\n"
+                f"Bits empruntés : {res['bits_empruntes']}\n"
+                f"Nouveau masque : {res['nouveau_masque']} (/{res['nouveau_prefixe']})\n"
+                f"SR demandés : {res['nb_sr_demandes']}\n"
+                f"SR créés : {res['nb_sr_reels']}\n"
+                f"Machines par SR : {res['max_machines']}"
+            ))
+
+        # Le bouton qui lance la découpe
+        tk.Button(win, text="Découper", command=decouper,
+                  bg="#2980b9", fg="white").pack(pady=10)
+
+        # Zone où le résumé s'affichera (vide au départ)
+        lbl_resume = tk.Label(win, text="", fg="blue", justify="left")
+        lbl_resume.pack(pady=5)
+
+    #AMBZ 02
+    #Date : 13/10/2026
+    #During : 3h
     def close_connexion(self):
         win = tk.Toplevel(self.root)
         win.resizable(False, False)
         win.title("Déconnexion")
         win.geometry("450x200")
 
-        #AMBZ 01
         def logout():
             if (Database.check_logout()):
                 Database.check_logout()

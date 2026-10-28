@@ -6,7 +6,9 @@ class Database:
 
     __isLoggIn = False
 
-    #AMBZ 01
+    #AMBZ 02
+    #Date : 06/10/2026
+    #During : 30minutes
     @staticmethod
     def get_db_connection():
         if (os.path.isfile("FINDMYIP.db") == False):
@@ -14,7 +16,9 @@ class Database:
         Database.__isLoggIn = True
         return sqlite3.connect("FINDMYIP.db")
 
-    #AMBZ 01
+    #AMBZ 02
+    #Date : 06/10/2026
+    #During : 10minutes
     @staticmethod
     def create_db():
         conn = sqlite3.connect("FINDMYIP.db")
@@ -32,7 +36,9 @@ class Database:
         cursor.close()
         conn.close()      
 
-    #AMBZ 01
+    #AMBZ 02 
+    #Date : 07/10/2026
+    #During : 30minutes
     @staticmethod
     def check_login(username , password):
         try :
@@ -65,7 +71,9 @@ class Database:
                 conn.close()
                 
 
-    #AMBZ 01
+    #AMBZ 02
+    #Date : 07/10/2026
+    #During : 2h
     @staticmethod
     def save_user(username , password):
         try : 
@@ -86,7 +94,9 @@ class Database:
                 cursor.close()
                 conn.close()
 
-    #AMBZ 01
+    #AMBZ 02
+    #Date : 13/10/2026
+    #During : 10minutes
     @staticmethod
     def check_logout():
         if(Database.__isLoggIn == False):
