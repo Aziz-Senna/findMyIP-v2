@@ -23,8 +23,8 @@ class NetworkCalculator:
                 "decimal": ".".join(str(part) for part in decimal_parts)
             })
         return list_masques
-    
-    #Amine Bouaziz
+
+    #AMBZ 01
     #Initialement, la méthode retourne un bool mais on retourne plutôt l'erreur en string.
     @staticmethod
     def check_ip(ip_input):
