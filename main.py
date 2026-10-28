@@ -5,7 +5,7 @@ from matplotlib import container
 from database import Database
 import tkinter.simpledialog
 from network import NetworkCalculator
-
+from subnetting import SubnetCalculator
 
 class LoginWindow:
     def __init__(self, root):
@@ -97,6 +97,8 @@ class FindMyIPApp:
             ("Masque de Classe", self.ouvrir_masque_classe),
             ("Réseau & Sous-Réseau", self.ouvrir_subnetting),
             ("Vérificateur Connexion", self.ouvrir_comm),
+            #fonction Yazan
+            ("Découpe en Sous-Réseaux", self.ouvrir_decoupe),
             ("Infos Application", self.ouvrir_infos)
         ]
         
@@ -308,6 +310,49 @@ class FindMyIPApp:
                               font=("Courier New", 10), padx=20, pady=20, bg="white", relief="sunken")
         label_cadre.pack(expand=True, fill="both", padx=10, pady=10)
         tk.Button(fenetre_info, text="Compris", command=fenetre_info.destroy).pack(pady=10)
+    # Fonction Yazan
+    def ouvrir_decoupe(self):
+        # Nouvelle fenêtre par-dessus le menu principal
+        win = tk.Toplevel(self.root)
+        win.title("Découpe en Sous-Réseaux")
+        win.geometry("850x600")
+
+        # Champ 1 : l'adresse IP
+        tk.Label(win, text="Adresse IP :").pack(pady=5)
+        ent_ip = tk.Entry(win)
+        ent_ip.pack()
+
+        # Champ 2 : le nombre de sous-réseaux
+        tk.Label(win, text="Nombre de sous-réseaux :").pack(pady=5)
+        ent_nb = tk.Entry(win)
+        ent_nb.pack()
+                # Ce qui se passe quand on clique sur "Découper"
+        def decouper():
+            # On envoie les 2 champs à la calculatrice de subnetting.py
+            res, err = SubnetCalculator.decouper_sous_reseaux(ent_ip.get(), ent_nb.get())
+            if err:
+                # Problème : on affiche le message et on s'arrête là
+                messagebox.showerror("Erreur", err, parent=win)
+                return
+            # Tout va bien : on écrit le résumé dans le label
+            lbl_resume.config(text=(
+                f"Classe : {res['classe']}\n"
+                f"Réseau de départ : {res['reseau']}\n"
+                f"Masque de classe : {res['masque_classe']}\n"
+                f"Bits empruntés : {res['bits_empruntes']}\n"
+                f"Nouveau masque : {res['nouveau_masque']} (/{res['nouveau_prefixe']})\n"
+                f"SR demandés : {res['nb_sr_demandes']}\n"
+                f"SR créés : {res['nb_sr_reels']}\n"
+                f"Machines par SR : {res['max_machines']}"
+            ))
+
+        # Le bouton qui lance la découpe
+        tk.Button(win, text="Découper", command=decouper,
+                  bg="#2980b9", fg="white").pack(pady=10)
+
+        # Zone où le résumé s'affichera (vide au départ)
+        lbl_resume = tk.Label(win, text="", fg="blue", justify="left")
+        lbl_resume.pack(pady=5)
 
 if __name__ == "__main__":
     root = tk.Tk()
