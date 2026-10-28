@@ -1,8 +1,8 @@
 class NetworkCalculator:
     
     @staticmethod
-    def generer_donnees_masques():
-        liste_masques = []
+    def generate_datas_masks():
+        list_masques = []
         
         for i in range(8, 31):
             binary_mask = ""
@@ -17,53 +17,56 @@ class NetworkCalculator:
                 if (bit+1)%8 == 0 and bit < 31:
                     binary_mask += "."
                 
-            liste_masques.append({
+            list_masques.append({
                 "prefixe": f"/{i:02d}",
                 "binaire": binary_mask,
                 "decimal": ".".join(str(part) for part in decimal_parts)
             })
-        return liste_masques
-    
+        return list_masques
+
+    #AMBZ 01
+    #Initialement, la méthode retourne un bool mais on retourne plutôt l'erreur en string.
     @staticmethod
-    def verifier_ip(ip_input):
+    def check_ip(ip_input):
         ip = ip_input.strip().replace(" ", "")
         if len(ip) < 7 or len(ip) > 15:
-            return False
-        octets = ip.split(".")
+            return "La taille de l'adresse IP n'est pas correcte."
+        bytes = ip.split(".")
         
-        if len(octets) != 4:
-            return False
+        if len(bytes) != 4:
+            return "L'adresse IP doit contenir quatre octets soit quatre parties décimales."
         
         try:
-            for o in octets:
+            for o in bytes:
                 if not o.isdigit():
-                    return False
+                    return "Un des octets n'est pas décimal."
                 value = int(o)
-                if value < 0 or value > 255:
-                    return False
+                #Pas de value < 0 car la methode isdigit() ne considère pas les négatives comme des chiffres dû au caractère -.
+                if value > 255:
+                    return "La valeur d'un des octets n'est pas comprise entre 0 et 255."
                 if len(o) > 1 and o[0] == '0':
-                    return False
-            return True
+                    return "Les octets du style 0xx ne sont pas acceptés."
+            return "True"
         except ValueError:
-            return False
+            return "False"
         
     @staticmethod
-    def analyser_ip(ip_input):
-        octets = [int(o) for o in ip_input.split(".")]
-        first = octets[0]
-        second = octets[1]
+    def analyse_ip(ip_input):
+        bytes = [int(o) for o in ip_input.split(".")]
+        first = bytes[0]
+        second = bytes[1]
         
         # Détermination de la classe
         if 0 <= first <= 127:
-            classe = "Classe A"
+            class_adress = "Classe A"
         elif 128 <= first <= 191:
-            classe = "Classe B"
+            class_adress = "Classe B"
         elif 192 <= first <= 223:
-            classe = "Classe C"
+            class_adress = "Classe C"
         elif 224 <= first <= 239:
-            classe = "Classe D"
+            class_adress = "Classe D"
         else:
-            classe = "Classe E"
+            class_adress = "Classe E"
 
         # Privée ou Publique
         type_ip = "Publique"
@@ -78,26 +81,26 @@ class NetworkCalculator:
             status = "Réservée"
 
         return {
-            "classe": classe,
+            "classe": class_adress,
             "type": type_ip,
             "status": status
         }
     
     @staticmethod
-    def obtenir_masque_classe(ip_input):
+    def get_mask_class(ip_input):
         try:
-            octets = ip_input.split(".")
-            premier_octet = int(octets[0])
+            bytes = ip_input.split(".")
+            first_byte = int(bytes[0])
             
-            if 0 <= premier_octet <= 127:
+            if 0 <= first_byte <= 127:
                 return "A", "255.0.0.0"
-            elif 128 <= premier_octet <= 191:
+            elif 128 <= first_byte <= 191:
                 return "B", "255.255.0.0"
-            elif 192 <= premier_octet <= 223:
+            elif 192 <= first_byte <= 223:
                 return "C", "255.255.255.0"
-            elif 224 <= premier_octet <= 239:
+            elif 224 <= first_byte <= 239:
                 return "D (Multicast)", "N/A"
-            elif 240 <= premier_octet <= 255:
+            elif 240 <= first_byte <= 255:
                 return "E (Expérimentale)", "N/A"
             else:
                 return "Invalide", "Inconnu"
@@ -105,37 +108,37 @@ class NetworkCalculator:
             return "Erreur", "Format invalide"
     
     @staticmethod
-    def calculer_ids_reseau(ip_input, masque_input):
+    def compute_adress_network(ip_input, mask_input):
         try:
-            ip_octets = [int(i) for i in ip_input.split(".")]
-            mask_octets = [int(m) for m in masque_input.split(".")]
+            ip_bytes = [int(i) for i in ip_input.split(".")]
+            mask_bytes = [int(m) for m in mask_input.split(".")]
 
-            premier = ip_octets[0]
-            if 0 <= premier <= 127:
+            first = ip_bytes[0]
+            if 0 <= first <= 127:
                 classe, m_class = "A", [255, 0, 0, 0]
-            elif 128 <= premier <= 191:
+            elif 128 <= first <= 191:
                 classe, m_class = "B", [255, 255, 0, 0]
-            elif 192 <= premier <= 223:
+            elif 192 <= first <= 223:
                 classe, m_class = "C", [255, 255, 255, 0]
             else:
                 return None, "Classe spéciale (D/E) sans masque standard."
 
-            # Réseau classful 
-            net_id = ".".join(str(ip_octets[i] & m_class[i]) for i in range(4))
+            # Réseau classfull 
+            net_id = ".".join(str(ip_bytes[i] & m_class[i]) for i in range(4))
             
             # Sous-réseau 
-            subnet_id = ".".join(str(ip_octets[i] & mask_octets[i]) for i in range(4))
+            subnet_id = ".".join(str(ip_bytes[i] & mask_bytes[i]) for i in range(4))
 
             return {
                 "classe": classe,
                 "reseau_classful": net_id,
                 "sous_reseau": subnet_id
-            }, None
+            }, None        
         except Exception as e:
             return None, f"Erreur de calcul : {e}"
         
     @staticmethod
-    def tester_communication(ip1_s, mask1_s, ip2_s, mask2_s):
+    def test_communication(ip1_s, mask1_s, ip2_s, mask2_s):
         try:
             i1 = [int(i) for i in ip1_s.split(".")]
             m1 = [int(m) for m in mask1_s.split(".")]
