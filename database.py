@@ -1,6 +1,7 @@
 import sqlite3
 import os.path
 import bcrypt
+from datetime import datetime, timedelta
 
 class Database:
 
@@ -25,14 +26,93 @@ class Database:
         conn = sqlite3.connect("FINDMYIP.db")
         cursor = conn.cursor()
 
-        create_table_query = """create table if not exists userInfo(
-            nameUser varchar(100) not null, 
+        #AMBZ 02
+        #Date : 29/10/2026
+        #Update of the table
+        create_user_table_query = """create table if not exists userInfo(
+            idUser integer primary key autoincrement,
+            nameUser varchar(20) not null, 
             passwordUser varchar(100) not null, 
-            role varchar(100) not null default ('user'), 
-            primary key (nameUser))"""
-        cursor.execute(create_table_query)
-        cursor.execute("insert into userInfo values (?,?,?)", 
+            role varchar(5) not null)"""
+        cursor.execute(create_user_table_query)
+        cursor.execute("insert into userInfo (nameUser, passwordUser, role) values (?, ?, ?)", 
             ('firstadmin', '$2b$12$9bKppilobc0wqkG9VnjZ3uHjOqbRNT8C8TCeckF/OodN49peqRl.W', 'admin'))
+        conn.commit()
+
+
+
+
+        #AMBZ 02
+        #Date : 29/10/2026
+        create_feature_table_query = """create table if not exists features(
+            idFeature integer primary key autoincrement,
+            nameFeature varchar(30) not null)"""
+
+        cursor.execute(create_feature_table_query)
+        cursor.execute("insert into features (nameFeature) values (?)", ('Générateur de Masques',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Validateur Format IP',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Analyseur de Propriétés',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Réseau & Sous-Réseau',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Découpe en Sous-Réseaux',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Vérificateur Connexion',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Infos Application',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Se déconnecter',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Ajouter un utilisateur',))
+        conn.commit()
+
+        cursor.execute("insert into features (nameFeature) values (?)", ('Supprimer un utilisateur',))
+        conn.commit()
+
+        create_connexion_query = """create table if not exists connexion(
+            idConnexion integer primary key autoincrement, 
+            dateLogin datetime not null, 
+            dateLogout datetime not null)"""
+
+        cursor.execute(create_connexion_query)
+        conn.commit()
+
+        cursor.execute("alter table connexion add column fkIdUser integer not null references userInfo(idUser)")
+        conn.commit()
+
+
+
+
+
+        create_used_table_query = """create table if not exists used(
+            dateOfUse datetime not null, 
+            entry1 varchat(25) not null, 
+            entry2 varchar(25) not null, 
+            entry3 varchar(25), 
+            entry4 varchar(25),
+            primary key(dateOfUse))"""
+
+        cursor.execute(create_used_table_query)
+        conn.commit()
+
+        cursor.execute("alter table used add column fkIdUser integer not null references userInfo(idUser)")
+        conn.commit()
+
+        cursor.execute("alter table used add column fkIdFeature integer not null references features(idFeature)")
+        conn.commit()
+
+        cursor.execute("insert into used (dateOfUse, entry1, entry2, fkIdUser, fkIdFeature) values (?,?,?,?,?)", 
+            (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "192.168.15.2", "255.255.255.0", 1, 4))
         conn.commit()
         cursor.close()
         conn.close()      

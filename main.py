@@ -124,7 +124,7 @@ class FindMyIPApp:
 
     def open_generator(self):
         win = tk.Toplevel(self.root)
-        win.title("grid_usersau des Masques")
+        win.title("Tableau des masques")
         win.geometry("900x600")
         
         donnees = NetworkCalculator.generate_datas_masks()
@@ -261,7 +261,7 @@ class FindMyIPApp:
 
         def open_add_user():
             win = tk.Toplevel(self.root)
-            win.title("Ajouter un Utilisateur")
+            win.title("Ajouter un utilisateur")
             win.geometry("400x500")
             win.configure(bg="#f4f7f9")
             win.resizable(False, False)
@@ -374,7 +374,7 @@ class FindMyIPApp:
                 return
 
             win = tk.Toplevel(self.root)
-            win.title("Supprimer un Utilisateur")
+            win.title("Supprimer un utilisateur")
             win.geometry("500x500")
             win.configure(bg="#f4f7f9")
             win.resizable(False, False)
@@ -507,7 +507,7 @@ class FindMyIPApp:
             "   -> Adresse RÉSERVÉE (ex: 127.0.0.1)\n"
             "   -> Adresse PRIVÉE (ex: 192.168.x.x)\n\n"
             "4. MASQUE DE CLASSE :\n"
-            "   Donner le masque par défaut (Classful) selon la classe de l'IP.\n\n"
+            "   Donner le masque par défaut (Classfull) selon la classe de l'IP.\n\n"
             "5. RÉSEAU ET SOUS-RÉSEAU :\n"
             "   calculate l'ID Réseau et l'ID Sous-réseau à partir de l'IP et du masque.\n\n"
             "6. VÉRIFICATION BILATÉRALE :\n"
