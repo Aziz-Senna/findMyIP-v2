@@ -79,7 +79,7 @@ class SubnetCalculator:
         res, err = NetworkCalculator.compute_adress_network(ip, masque_classe)
         if err:
             return None, err
-        reseau_depart = res["reseau_classful"]
+        reseau_depart = res["reseau_classfull"]
 
         # Étape E : nombre de plis (bits empruntés) et nouveau préfixe
         bits = SubnetCalculator.calculer_bits_empruntes(nb_sr)

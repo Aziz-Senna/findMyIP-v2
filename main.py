@@ -124,12 +124,12 @@ class FindMyIPApp:
 
     def open_generator(self):
         win = tk.Toplevel(self.root)
-        win.title("Tableau des Masques")
+        win.title("grid_usersau des Masques")
         win.geometry("900x600")
         
         donnees = NetworkCalculator.generate_datas_masks()
         
-        # Affichage dans un tableau (Treeview) pour que ce soit pro
+        # Affichage dans un grid_usersau (Treeview) pour que ce soit pro
         cols = ("prefixe", "decimal", "binaire")
         tree = ttk.Treeview(win, columns=cols, show="headings")
         tree.heading("prefixe", text="CIDR")
@@ -262,9 +262,10 @@ class FindMyIPApp:
         def open_add_user():
             win = tk.Toplevel(self.root)
             win.title("Ajouter un Utilisateur")
-            win.geometry("400x300")
+            win.geometry("400x500")
             win.configure(bg="#f4f7f9")
             win.resizable(False, False)
+
             tk.Label(win, text="Ajouter un Utilisateur", font=("Segoe UI", 16, "bold"),
                     bg="#f4f7f9", fg="#2c3e50").pack(pady=20)
 
@@ -278,6 +279,15 @@ class FindMyIPApp:
             tk.Label(container, text="Mot de passe", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
             ent_pwd = tk.Entry(container, show="*", font=("Segoe UI", 11))
             ent_pwd.pack(fill="x", pady=5)
+
+            #AMBZ 02
+            #Date : 29/10/2026
+            #During : 30minutes
+            v = tk.StringVar()
+            v.set(None) # initialiser
+            tk.Label(container, text="Type d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w", pady=(5,15))
+            tk.Radiobutton(container, text="Admin", variable=v, value="admin", bg="#f4f7f9").pack(side="left", padx=10, pady=5)
+            tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5)
 
             #AMBZ 02
             #Date : 10/10/2026
@@ -342,8 +352,8 @@ class FindMyIPApp:
 
                     else:
                         #On teste l'enregistrement d'utilisateur
-                        if Database.save_user(user, pwd):
-                            Database.save_user(user, pwd)
+                        if Database.save_user(user, v.get(), pwd):
+                            Database.save_user(user, v.get(), pwd)
                             messagebox.showinfo("Succès", "Utilisateur enregistré !")
                             win.destroy()
                         else:
@@ -357,7 +367,7 @@ class FindMyIPApp:
 
         #AMBZ 02
         #Date : 28/10/2026
-        #During : 4h
+        #During : 4h15
         def open_delete_user():
             if Database.nb_users() == 0:
                 messagebox.showerror("Erreur !", "Il n'y a aucun utilisateur à supprimer !")
@@ -395,12 +405,12 @@ class FindMyIPApp:
                 else:
                     messagebox.showerror("Erreur", "Échec de la suppression.")
 
-            # ---------- Conteneur du tableau ----------
-            table = tk.Frame(win, bg="#f4f7f9")
-            table.grid(row=0, column=0, pady=(10, 0))
+            # ---------- Conteneur du grid_usersau ----------
+            grid_users = tk.Frame(win, bg="#f4f7f9")
+            grid_users.grid(row=0, column=0, pady=(10, 0))
 
             # Titres (fixes, ne défilent pas)
-            header = tk.Frame(table, bg="#f4f7f9")
+            header = tk.Frame(grid_users, bg="#f4f7f9")
             header.grid(row=0, column=0, sticky="w")
             header_labels = []
             for col, titre in enumerate(["Index", "Nom d'utilisateur", "Rôle"]):
@@ -409,8 +419,8 @@ class FindMyIPApp:
                 header_labels.append(lbl)
 
             # Zone défilante : Canvas + Scrollbar
-            canvas = tk.Canvas(table, bg="#f4f7f9", highlightthickness=0)
-            scrollbar = tk.Scrollbar(table, orient="vertical", command=canvas.yview)
+            canvas = tk.Canvas(grid_users, bg="#f4f7f9", highlightthickness=0)
+            scrollbar = tk.Scrollbar(grid_users, orient="vertical", command=canvas.yview)
             canvas.configure(yscrollcommand=scrollbar.set)
             canvas.grid(row=1, column=0, sticky="nsew")
             scrollbar.grid(row=1, column=1, sticky="ns")
@@ -485,7 +495,7 @@ class FindMyIPApp:
         texte_complet = (
             "Les infos sur l'application\n"
             "" + "="*60 + "\n\n"
-            "1. TABLEAU DES MASQUES :\n"
+            "1. grid_usersAU DES MASQUES :\n"
             "   Afficher tous les masques de /8 à /30 sous 3 formes :\n"
             "   -> Notation CIDR (ex: /24)\n"
             "   -> Binaire (ex: 11111111.11111111.11111111.00000000)\n"

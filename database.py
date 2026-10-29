@@ -81,14 +81,14 @@ class Database:
     #Date : 07/10/2026
     #During : 2h
     @staticmethod
-    def save_user(username , password):
+    def save_user(username, role, password):
         try : 
             conn = Database.get_db_connection()
             cursor = conn.cursor()
             
             salt = bcrypt.gensalt()
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
-            cursor.execute("insert into userInfo (nameUser, passwordUser) values (?,?)", (username, hashed_password))
+            cursor.execute("insert into userInfo (nameUser, role, passwordUser) values (?,?,?)", (username, role, hashed_password))
             conn.commit()
             return True
         except Exception as e:
@@ -134,8 +134,7 @@ class Database:
             if 'conn' in locals() and conn.cursor():
                 #Il fallait inverser l'ordre de fermeture entre conn et cursor.
                 cursor.close()
-                conn.close()
-        
+                conn.close()        
 
     #AMBZ 02
     #Date : 13/10/2026
