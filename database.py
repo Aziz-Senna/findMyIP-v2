@@ -5,6 +5,7 @@ import bcrypt
 class Database:
 
     __isLoggIn = False
+    __current_user = None
 
     #AMBZ 02
     #Date : 06/10/2026
@@ -59,7 +60,8 @@ class Database:
                     hashed_from_db = hashed_from_db.encode('utf-8')
                 
                 if(bcrypt.checkpw(password.encode('utf-8'), hashed_from_db)):
-                    return role
+                    Database.__current_user = username
+                    return role                
             return False
         except Exception as e:
             print(f"erreur de connexion: {e}")
@@ -69,6 +71,10 @@ class Database:
                 #Il fallait inverser l'ordre de fermeture entre conn et cursor.
                 cursor.close()
                 conn.close()
+
+    @staticmethod
+    def get_current_user():
+        return Database.__current_user
                 
 
     #AMBZ 02
@@ -93,6 +99,43 @@ class Database:
                 #Il fallait inverser l'ordre de fermeture entre conn et cursor.
                 cursor.close()
                 conn.close()
+
+    def get_users():
+        conn = Database.get_db_connection()
+        cursor = conn.cursor()
+        query = "select nameUser, role from userInfo where nameUser not like ?"
+        cursor.execute(query, (Database.get_current_user(),))
+        return cursor.fetchall()  
+    
+    def nb_users():
+        conn = Database.get_db_connection()
+        cursor = conn.cursor()
+        query = "select count(nameUser) from userInfo where nameUser not like ?"
+        cursor.execute(query, (Database.get_current_user(),))
+        nb_users = cursor.fetchone()
+        return nb_users[0]
+
+    #AMBZ 02
+    #Date : 28/10/2026
+    #During : 10minutes
+    @staticmethod
+    def delete_user(user_to_delete):
+        try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            query = "delete from userInfo where nameUser like ?"
+            cursor.execute(query, (Database.get_users()[user_to_delete][0],))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"erreur de suppression: {e}")
+            return False
+        finally:
+            if 'conn' in locals() and conn.cursor():
+                #Il fallait inverser l'ordre de fermeture entre conn et cursor.
+                cursor.close()
+                conn.close()
+        
 
     #AMBZ 02
     #Date : 13/10/2026
