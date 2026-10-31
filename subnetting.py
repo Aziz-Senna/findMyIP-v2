@@ -31,7 +31,7 @@ class SubnetCalculator:
     @staticmethod
     def prefixe_vers_masque(prefixe):
         #(fonction d'Amine ben hadou)
-        masques = NetworkCalculator.generer_donnees_masques()
+        masques = NetworkCalculator.get_mask_class()
         return masques[prefixe - 8]["decimal"]
 
     #les vérifications
@@ -52,7 +52,7 @@ class SubnetCalculator:
             return None, "Le nombre de SR doit être au moins 2."
         
         # Contrôle 3 : classe et masque de classe (obtenir_masque_classe de network.py)
-        classe, masque_classe = NetworkCalculator.obtenir_masque_classe(ip)
+        classe, masque_classe = NetworkCalculator.get_mask_class(ip)
         if masque_classe == "N/A":
             return None, f"Classe {classe} : pas de découpe possible."
         prefixe_classe = masque_classe.count("255") * 8
@@ -116,13 +116,3 @@ class SubnetCalculator:
     
     
 
-    
-        
-if __name__ == "__main__":
-    print("--- Résultat final ---")
-    res, err = SubnetCalculator.decouper_sous_reseaux("192.168.1.50", "4")
-    print("Réseau :", res["reseau"])
-    print("Nouveau masque :", res["nouveau_masque"])
-    print("Max machines :", res["max_machines"])
-    for sr in res["sous_reseaux"]:
-        print(sr["numero"], sr["reseau"], sr["premiere"], sr["derniere"], sr["broadcast"])
