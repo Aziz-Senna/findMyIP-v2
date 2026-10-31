@@ -99,7 +99,7 @@ class FindMyIPApp:
             #YAAL 01
             #Date : 
             #During : 
-            ("Découpe en Sous-Réseaux", self.ouvrir_decoupe),
+            ("Découpe en Sous-Réseaux", self.open_decoupe),
 
 
             ("Vérificateur Connexion", self.open_comm),
@@ -527,7 +527,7 @@ class FindMyIPApp:
     #YAAL 01
     #Date : 
     #During : 
-    def ouvrir_decoupe(self):
+    def open_decoupe(self):
         # Nouvelle fenêtre par-dessus le menu principal
         win = tk.Toplevel(self.root)
         win.title("Découpe en Sous-Réseaux")
@@ -561,6 +561,13 @@ class FindMyIPApp:
                 f"SR créés : {res['nb_sr_reels']}\n"
                 f"Machines par SR : {res['max_machines']}"
             ))
+
+            # On enregistre la recette de la découpe dans la base (tâche 3)
+            if not Database.save_subnetting(res["reseau"], res["nouveau_masque"],
+                                            res["nb_sr_demandes"], res["max_machines"]):
+                messagebox.showerror("Erreur", "La découpe n'a pas pu être enregistrée.", parent=win)
+
+
 
         # Le bouton qui lance la découpe
         tk.Button(win, text="Découper", command=decouper,

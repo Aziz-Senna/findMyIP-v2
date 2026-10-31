@@ -57,10 +57,12 @@ class SubnetCalculator:
     def decouper_sous_reseaux(ip,nb_sr):
         ip = ip.strip()
         
-        # Contrôle 1: L'IP doit être valide (fonction d'Amine ben hadou)
-        if not NetworkCalculator.check_ip(ip):
-            return None, "Adresse IP invalide."
-            
+        # Contrôle 1 : l'IP doit être valide (check_ip de network.py)
+        # check_ip renvoie le texte "True" si l'IP est bonne, sinon le message d'erreur
+        verification = NetworkCalculator.check_ip(ip)
+        if verification != "True":
+            return None, verification
+        
         # Contrôle 2: Le nombre de SR doit être un entier d'au moins 2
         try:
             nb_sr = int(nb_sr)

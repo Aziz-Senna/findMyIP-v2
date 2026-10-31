@@ -226,4 +226,55 @@ class Database:
         Database.__isLoggIn = False
         return True
 
+    #yazan 01
+    #Date : 31/10/2026
+    @staticmethod
+    # Tâche 3 : crée la table qui garde la recette de chaque découpe en sous-réseaux.
+    # Créée ici et pas dans create_db, car create_db ne s'exécute que si le
+    def create_addressing_table():
+        conn = Database.get_db_connection()
+        cursor = conn.cursor()
+        # idAddressing : numéro qui se remplit tout seul (1, 2, 3...)
+        # network      : réseau de départ, ex 172.16.0.0
+        # mask         : nouveau masque des sous-réseaux, ex 255.255.224.0
+        # nbSubnets    : nombre de sous-réseaux demandés par l'utilisateur
+        # maxHosts     : nombre de machines utilisables par sous-réseau
+        # modifiedBy   : utilisateur connecté qui a fait l'enregistrement
+        # modifiedDate : date et heure, remplies automatiquement par SQLite
+        cursor.execute("""create table if not exists addressing_table(
+            idAddressing integer primary key autoincrement,
+            network varchar(15) not null,
+            mask varchar(15) not null,
+            nbSubnets integer not null,
+            maxHosts integer not null,
+            modifiedBy varchar(100) not null,
+            modifiedDate text not null default (datetime('now', 'localtime')))""")
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    @staticmethod
+    # écrit une ligne dans la table d'adressage.
+    # Renvoie True si l'enregistrement a réussi, False sinon.
+    def save_subnetting(network, mask, nb_subnets, max_hosts):
+        try:
+            #On s’assure que la page existe.C’est une sécurité.
+            Database.create_addressing_table()
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""insert into addressing_table
+                (network, mask, nbSubnets, maxHosts, modifiedBy)
+                values (?, ?, ?, ?, ?)""",
+                (network, mask, nb_subnets, max_hosts, Database.get_current_user()))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"erreur d'enregistrement de la découpe: {e}")
+            return False
+        #si c raté ou pas 
+        finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
+
     
