@@ -24,7 +24,9 @@ class NetworkCalculator:
             })
         return list_masques
 
-    #AMBZ 01
+    #AMBZ 02
+    #Date : 11/10/2026
+    #During : 15minutes
     #Initialement, la méthode retourne un bool mais on retourne plutôt l'erreur en string.
     @staticmethod
     def check_ip(ip_input):
@@ -34,8 +36,7 @@ class NetworkCalculator:
         bytes = ip.split(".")
         
         if len(bytes) != 4:
-            return "L'adresse IP doit contenir quatre octets soit quatre parties décimales."
-        
+            return "L'adresse IP doit contenir quatre octets soit quatre parties décimales."        
         try:
             for o in bytes:
                 if not o.isdigit():
@@ -131,7 +132,7 @@ class NetworkCalculator:
 
             return {
                 "classe": classe,
-                "reseau_classful": net_id,
+                "reseau_classfull": net_id,
                 "sous_reseau": subnet_id
             }, None        
         except Exception as e:

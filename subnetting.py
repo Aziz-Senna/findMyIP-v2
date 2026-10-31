@@ -2,6 +2,10 @@ from network import NetworkCalculator
 
 
 class SubnetCalculator:
+
+    #YAAL 01
+    #Date : 
+    #During :
     # Calculs pour la découpe en sous-réseaux (sans librairie IP).
     # Méthodes statiques : on les appelle directement sur la classe,
     @staticmethod
@@ -11,6 +15,9 @@ class SubnetCalculator:
         octets = [int(o) for o in ip.split(".")]
         return octets[0] * 256**3 + octets[1] * 256**2 + octets[2] * 256 + octets[3]
 
+    #YAAL 01
+    #Date : 
+    #During :
     @staticmethod
     def entier_vers_ip(nombre):
         # Chemin inverse : on divise par 256 (//) puis on garde le reste (%)
@@ -20,6 +27,9 @@ class SubnetCalculator:
         octet4 = nombre % 256
         return f"{octet1}.{octet2}.{octet3}.{octet4}"
 
+    #YAAL 01
+    #Date : 
+    #During :
     @staticmethod
     def calculer_bits_empruntes(nb_sr):
         # Plus petit nombre de bits tel que 2^bits >= nombre de SR demandés
@@ -27,20 +37,28 @@ class SubnetCalculator:
         while 2 ** bits < nb_sr:
             bits += 1
         return bits
+
+
+    #YAAL 01
+    #Date : 
+    #During :
     #sr
     @staticmethod
     def prefixe_vers_masque(prefixe):
         #(fonction d'Amine ben hadou)
-        masques = NetworkCalculator.get_mask_class()
+        masques = NetworkCalculator.generate_datas_masks()
         return masques[prefixe - 8]["decimal"]
 
+    #YAAL 01
+    #Date : 
+    #During :
     #les vérifications
     @staticmethod
     def decouper_sous_reseaux(ip,nb_sr):
         ip = ip.strip()
         
         # Contrôle 1: L'IP doit être valide (fonction d'Amine ben hadou)
-        if not NetworkCalculator.verifier_ip(ip):
+        if not NetworkCalculator.check_ip(ip):
             return None, "Adresse IP invalide."
             
         # Contrôle 2: Le nombre de SR doit être un entier d'au moins 2
@@ -58,10 +76,10 @@ class SubnetCalculator:
         prefixe_classe = masque_classe.count("255") * 8
 
         # Contrôle 4 : réseau de départ (calculer_ids_reseau de network.py)
-        res, err = NetworkCalculator.calculer_ids_reseau(ip, masque_classe)
+        res, err = NetworkCalculator.compute_adress_network(ip, masque_classe)
         if err:
             return None, err
-        reseau_depart = res["reseau_classful"]
+        reseau_depart = res["reseau_classfull"]
 
         # Étape E : nombre de plis (bits empruntés) et nouveau préfixe
         bits = SubnetCalculator.calculer_bits_empruntes(nb_sr)
@@ -111,8 +129,3 @@ class SubnetCalculator:
             "nb_sr_affiches": nb_affiches,       # combien de SR sont dans la liste
         }
         return resultat, None
-    
-
-    
-    
-
