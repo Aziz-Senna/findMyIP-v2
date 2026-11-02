@@ -124,6 +124,8 @@ class FindMyIPApp:
 
     # --- ACTIONS ---
 
+    #AMBZ 02
+    #Date : 02/11/2026
     #Enregistrer la date et heure déconnexion et fermer le programme.
     def close_programm(self):        
             Database.save_connexion("logout")
