@@ -531,7 +531,7 @@ class FindMyIPApp:
         # Nouvelle fenêtre par-dessus le menu principal
         win = tk.Toplevel(self.root)
         win.title("Découpe en Sous-Réseaux")
-        win.geometry("400x300")
+        win.geometry("850x600")
 
         # Champ 1 : l'adresse IP
         tk.Label(win, text="Adresse IP :").pack(pady=5)
@@ -561,11 +561,19 @@ class FindMyIPApp:
                 f"SR créés : {res['nb_sr_reels']}\n"
                 f"Machines par SR : {res['max_machines']}"
             ))
+            # On vide le tableau, au cas où une découpe était déjà affichée
+            for ligne in tree.get_children():
+                tree.delete(ligne)
+            # On ajoute une ligne par sous-réseau
+            for sr in res["sous_reseaux"]:
+                tree.insert("", "end", values=(sr["numero"], sr["reseau"],
+                                               sr["premiere"], sr["derniere"], sr["broadcast"]))
 
             # On enregistre la recette de la découpe dans la base (tâche 3)
             if not Database.save_subnetting(res["reseau"], res["nouveau_masque"],
                                             res["nb_sr_demandes"], res["max_machines"]):
                 messagebox.showerror("Erreur", "La découpe n'a pas pu être enregistrée.", parent=win)
+
 
 
 
@@ -576,6 +584,17 @@ class FindMyIPApp:
         # Zone où le résumé s'affichera (vide au départ)
         lbl_resume = tk.Label(win, text="", fg="blue", justify="left")
         lbl_resume.pack(pady=5)
+
+         # Tableau des sous-réseaux (vide au départ, rempli par decouper())
+        cols = ("numero", "reseau", "premiere", "derniere", "broadcast")
+        tree = ttk.Treeview(win, columns=cols, show="headings")
+        tree.heading("numero", text="SR")
+        tree.heading("reseau", text="Adresse réseau")
+        tree.heading("premiere", text="1re machine")
+        tree.heading("derniere", text="Dernière machine")
+        tree.heading("broadcast", text="Broadcast")
+        tree.column("numero", width=50, anchor="center")
+        tree.pack(expand=True, fill="both", padx=10, pady=10)
 
     #AMBZ 02
     #Date : 13/10/2026
