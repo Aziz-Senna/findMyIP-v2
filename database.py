@@ -1,12 +1,13 @@
 import sqlite3
 import os.path
 import bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime
 
 class Database:
 
     __isLoggIn = False
     __current_user = None
+    __idConnexion = 0
 
     #AMBZ 02
     #Date : 06/10/2026
@@ -30,16 +31,14 @@ class Database:
         #Date : 29/10/2026
         #Update of the table
         create_user_table_query = """create table if not exists userInfo(
-            idUser integer primary key autoincrement,
             nameUser varchar(20) not null, 
             passwordUser varchar(100) not null, 
-            role varchar(5) not null)"""
+            role varchar(5) not null, 
+            primary key(nameUser))"""
         cursor.execute(create_user_table_query)
         cursor.execute("insert into userInfo (nameUser, passwordUser, role) values (?, ?, ?)", 
             ('firstadmin', '$2b$12$9bKppilobc0wqkG9VnjZ3uHjOqbRNT8C8TCeckF/OodN49peqRl.W', 'admin'))
         conn.commit()
-
-
 
 
         #AMBZ 02
@@ -58,6 +57,9 @@ class Database:
         cursor.execute("insert into features (nameFeature) values (?)", ('Analyseur de Propriétés',))
         conn.commit()
 
+        cursor.execute("insert into features (nameFeature) values (?)", ('Masque de Classe',))
+        conn.commit()
+
         cursor.execute("insert into features (nameFeature) values (?)", ('Réseau & Sous-Réseau',))
         conn.commit()
 
@@ -70,50 +72,32 @@ class Database:
         cursor.execute("insert into features (nameFeature) values (?)", ('Infos Application',))
         conn.commit()
 
-        cursor.execute("insert into features (nameFeature) values (?)", ('Se déconnecter',))
-        conn.commit()
-
-        cursor.execute("insert into features (nameFeature) values (?)", ('Ajouter un utilisateur',))
-        conn.commit()
-
-        cursor.execute("insert into features (nameFeature) values (?)", ('Supprimer un utilisateur',))
-        conn.commit()
-
         create_connexion_query = """create table if not exists connexion(
             idConnexion integer primary key autoincrement, 
             dateLogin datetime not null, 
-            dateLogout datetime not null)"""
+            dateLogout datetime)"""
 
         cursor.execute(create_connexion_query)
         conn.commit()
 
-        cursor.execute("alter table connexion add column fkIdUser integer not null references userInfo(idUser)")
+        cursor.execute("alter table connexion add column fkNameUser varchar(20) not null references userInfo(nameUser)")
         conn.commit()
 
-
-
-
-
-        create_used_table_query = """create table if not exists used(
+        #AMBZ 02
+        #Date : 01/11/2026
+        #J'évite les alter table pour garder cette ordre précis. Sinon je devrais mettre les clés étrangères en dernier et c'est pas beau.
+        create_used_table_query = """create table if not exists activities(
+            fkIdFeature integer not null references features(idFeature),
+            modifiedBy varchar(20) not null references userInfo(nameUser),
             dateOfUse datetime not null, 
-            entry1 varchat(25) not null, 
-            entry2 varchar(25) not null, 
-            entry3 varchar(25), 
-            entry4 varchar(25),
-            primary key(dateOfUse))"""
+            entry1 varchar(50), 
+            entry2 varchar(50), 
+            entry3 varchar(50), 
+            entry4 varchar(50))"""
 
         cursor.execute(create_used_table_query)
         conn.commit()
 
-        cursor.execute("alter table used add column fkIdUser integer not null references userInfo(idUser)")
-        conn.commit()
-
-        cursor.execute("alter table used add column fkIdFeature integer not null references features(idFeature)")
-        conn.commit()
-
-        cursor.execute("insert into used (dateOfUse, entry1, entry2, fkIdUser, fkIdFeature) values (?,?,?,?,?)", 
-            (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "192.168.15.2", "255.255.255.0", 1, 4))
-        conn.commit()
         cursor.close()
         conn.close()      
 
@@ -152,6 +136,8 @@ class Database:
                 cursor.close()
                 conn.close()
 
+    #AMBZ 02
+    #Date : 07/10/2026
     @staticmethod
     def get_current_user():
         return Database.__current_user
@@ -180,13 +166,17 @@ class Database:
                 cursor.close()
                 conn.close()
 
+    #AMBZ 02
+    #Date : 07/10/2026
     def get_users():
         conn = Database.get_db_connection()
         cursor = conn.cursor()
         query = "select nameUser, role from userInfo where nameUser not like ?"
         cursor.execute(query, (Database.get_current_user(),))
         return cursor.fetchall()  
-    
+
+    #AMBZ 02
+    #Date : 07/10/2026
     def nb_users():
         conn = Database.get_db_connection()
         cursor = conn.cursor()
@@ -194,6 +184,11 @@ class Database:
         cursor.execute(query, (Database.get_current_user(),))
         nb_users = cursor.fetchone()
         return nb_users[0]
+
+    #AMBZ 02
+    #Date : 01/11/2026
+    def get_id_connexion():
+        return Database.__idConnexion
 
     #AMBZ 02
     #Date : 28/10/2026
@@ -226,55 +221,72 @@ class Database:
         Database.__isLoggIn = False
         return True
 
-    #yazan 01
-    #Date : 31/10/2026
+    #YAAL 01
+    #Date : 02/11/2026    
     @staticmethod
-    # Tâche 3 : crée la table qui garde la recette de chaque découpe en sous-réseaux.
-    # Créée ici et pas dans create_db, car create_db ne s'exécute que si le
-    def create_addressing_table():
-        conn = Database.get_db_connection()
-        cursor = conn.cursor()
-        # idAddressing : numéro qui se remplit tout seul (1, 2, 3...)
-        # network      : réseau de départ, ex 172.16.0.0
-        # mask         : nouveau masque des sous-réseaux, ex 255.255.224.0
-        # nbSubnets    : nombre de sous-réseaux demandés par l'utilisateur
-        # maxHosts     : nombre de machines utilisables par sous-réseau
-        # modifiedBy   : utilisateur connecté qui a fait l'enregistrement
-        # modifiedDate : date et heure, remplies automatiquement par SQLite
-        cursor.execute("""create table if not exists addressing_table(
-            idAddressing integer primary key autoincrement,
-            network varchar(15) not null,
-            mask varchar(15) not null,
-            nbSubnets integer not null,
-            maxHosts integer not null,
-            modifiedBy varchar(100) not null,
-            modifiedDate text not null default (datetime('now', 'localtime')))""")
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-    @staticmethod
-    # écrit une ligne dans la table d'adressage.
-    # Renvoie True si l'enregistrement a réussi, False sinon.
-    def save_subnetting(network, mask, nb_subnets, max_hosts):
+    # Les entry sauvegardent ce que l'utilisateur entre, et non les résultats.
+    def save_activity(entry1, entry2, entry3, entry4, idFeature):
         try:
-            #On s’assure que la page existe.C’est une sécurité.
-            Database.create_addressing_table()
             conn = Database.get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("""insert into addressing_table
-                (network, mask, nbSubnets, maxHosts, modifiedBy)
-                values (?, ?, ?, ?, ?)""",
-                (network, mask, nb_subnets, max_hosts, Database.get_current_user()))
+
+            #Vérifier si l'identifiant de l'activité a déjà été enregistré.
+            cursor.execute("select count(fkIdfeature) from activities where fkIdFeature = (?)", (idFeature,))
+            countFeature = cursor.fetchone()[0]
+
+            if countFeature != 0:
+                cursor.execute("""update activities 
+                    set modifiedBy = (?), dateOfUse = (?),  
+                    entry1 = (?), entry2 = (?), entry3 = (?), entry4 = (?) where fkIdFeature = (?)""", 
+                    (Database.get_current_user(), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4, idFeature))
+                conn.commit()
+            else:
+                cursor.execute("""insert into activities values (?, ?, ?, ?, ?, ?, ?)""",
+                    (idFeature, Database.get_current_user(), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4))
+                conn.commit()
+
+            # Afficher la db par dernière date de modification en utilisant une vue.
+            cursor.execute("create view if not exists recent_activities as select * from activities order by dateOfUse desc")
             conn.commit()
             return True
         except Exception as e:
-            print(f"erreur d'enregistrement de la découpe: {e}")
+            print(f"erreur d'enregistrement de l'activité': {e}")
             return False
-        #si c raté ou pas 
         finally:
             if 'conn' in locals():
                 cursor.close()
                 conn.close()
 
-    
+    #AMBZ 02
+    #Date : 01/11/2026
+    @staticmethod
+    def save_connexion(type):
+        try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()  
+
+            if type == "login":
+                #Récupérer la date de connexion.
+                date_login = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                cursor.execute("""insert into connexion (dateLogin, dateLogout, fkNameUser) values (?, ?, ?)""",
+                    (date_login, None, Database.get_current_user()))
+                conn.commit()
+
+                get_idconnexion_query = """select idConnexion from connexion where dateLogin = ? and fkNameUser like ?"""
+                cursor.execute(get_idconnexion_query, (date_login, Database.get_current_user()))
+                Database.__idConnexion = cursor.fetchone()[0]
+
+            elif type == "logout":
+                #Enregistrement de la date de déconnexion dans la table connexion.
+                cursor.execute("update connexion set dateLogout = ? where idConnexion = ?", 
+                    (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), Database.get_id_connexion()))
+                conn.commit()
+
+            return True
+        except Exception as e:
+            print(f"erreur d'enregistrement de la connexion': {e}")
+            return False
+        finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
