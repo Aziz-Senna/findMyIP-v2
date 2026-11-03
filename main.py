@@ -1,4 +1,5 @@
 import tkinter as tk
+import random
 from tkinter import messagebox, ttk
 from database import Database
 from network import NetworkCalculator
@@ -28,9 +29,9 @@ class LoginWindow:
         container = tk.Frame(self.root, bg="#f4f7f9")
         container.pack(pady=10, padx=40, fill="x")
 
-        tk.Label(container, text="Nom d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
-        self.username_entry = tk.Entry(container, font=("Segoe UI", 11))
-        self.username_entry.pack(fill="x", pady=(5, 15))
+        tk.Label(container, text="Matricule d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
+        self.idnumber_entry = tk.Entry(container, font=("Segoe UI", 11))
+        self.idnumber_entry.pack(fill="x", pady=(5, 15))
 
         tk.Label(container, text="Mot de passe", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
         self.password_entry = tk.Entry(container, show="*", font=("Segoe UI", 11))
@@ -53,11 +54,11 @@ class LoginWindow:
             self.btn_show.config(text="Afficher le mot de passe")
 
     def validate_connexion(self):
-        username = self.username_entry.get().strip()
+        id_number = self.idnumber_entry.get().strip()
         password = self.password_entry.get()
 
-        if Database.check_login(username, password):
-            role = Database.check_login(username , password)
+        if Database.check_login(id_number, password):
+            role = Database.check_login(id_number , password)
             self.execute_dashbord(role)
         else:
             messagebox.showerror("Erreur", "Identifiants incorrects")
@@ -85,7 +86,10 @@ class FindMyIPApp:
 
     def setup_main_menu(self):
         tk.Label(self.root, text="FINDMYIP", font=("Segoe UI", 24, "bold"), 
-                 bg="#f4f7f9", fg="#2c3e50").pack(pady=30)
+                 bg="#f4f7f9", fg="#2c3e50").pack(pady=15)
+
+        tk.Label(self.root, text=f"Bienvenue {Database.get_current_username()} !", font=("Segoe UI", 24, "bold"), 
+                 bg="#f4f7f9", fg="#2c3e50").pack(pady=15)
         
         # Grille pour les boutons
         container = tk.Frame(self.root, bg="#f4f7f9")
@@ -100,9 +104,7 @@ class FindMyIPApp:
 
             #YAAL 01
             #Date : 
-            #During : 
             ("Découpe en Sous-Réseaux", self.open_decoupe),
-
 
             ("Vérificateur Connexion", self.open_comm),
             ("Infos Application", self.open_informations), 
@@ -395,6 +397,14 @@ class FindMyIPApp:
             tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5)
 
             #AMBZ 02
+            #Date : 03/11/2026
+            #Créer un matricule pour le nouvelle utilisateur
+            id_number = random.randrange(pow(9, 5) + 1) #00.00 est reservé pour le firstadmin
+            id_number = str(id_number)
+            # Avoir le format XX.XX
+            id_number = id_number[:2] + "." + id_number[-2:]
+
+            #AMBZ 02
             #Date : 10/10/2026
             #During : 10secondes (car il vient de son ancien projet)
             def is_date(pwd):
@@ -457,8 +467,8 @@ class FindMyIPApp:
 
                     else:
                         #On teste l'enregistrement d'utilisateur
-                        if Database.save_user(user, v.get(), pwd):
-                            Database.save_user(user, v.get(), pwd)
+                        if Database.save_user(id_number, user, v.get(), pwd):
+                            Database.save_user(id_number, user, v.get(), pwd)
                             messagebox.showinfo("Succès", "Utilisateur enregistré !")
                             win.destroy()
                         else:
@@ -467,8 +477,12 @@ class FindMyIPApp:
                     messagebox.showwarning("Attention", "Remplis tous les champs.")
         
             tk.Button(win, text="AJOUTER", command=save,
-                    bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"),
-                    relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")
+                bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"),
+                relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")
+            
+            tk.Label(win, text=f"Voici votre matricule, veuillez le mémoriser : {id_number}",
+                fg="#2980b9", bg="#f4f7f9", font=("Segoe UI", 10, "bold")).pack(fill="x", padx=40)
+
 
         #AMBZ 02
         #Date : 28/10/2026
@@ -480,7 +494,7 @@ class FindMyIPApp:
 
             win = tk.Toplevel(self.root)
             win.title("Supprimer un utilisateur")
-            win.geometry("500x500")
+            win.geometry("750x500")
             win.configure(bg="#f4f7f9")
             win.resizable(False, False)
             win.grid_columnconfigure(0, weight=1)
@@ -497,7 +511,7 @@ class FindMyIPApp:
 
             def set_value(value):
                 user_to_delete.set(value)
-                user_selected.config(text=f"Vous avez sélectionné : {users[value][0]}")
+                user_selected.config(text=f"Vous avez sélectionné : {users[value][1]}")
 
             def delete():
                 index = user_to_delete.get()
@@ -518,7 +532,7 @@ class FindMyIPApp:
             header = tk.Frame(grid_users, bg="#f4f7f9")
             header.grid(row=0, column=0, sticky="w")
             header_labels = []
-            for col, titre in enumerate(["Index", "Nom d'utilisateur", "Rôle"]):
+            for col, titre in enumerate(["Index", "Matricule", "Nom d'utilisateur", "Rôle"]):
                 lbl = tk.Label(header, text=titre, **cell_style)
                 lbl.grid(row=0, column=col)
                 header_labels.append(lbl)
@@ -552,6 +566,8 @@ class FindMyIPApp:
                     row=row_user, column=1, sticky="nsew")
                 tk.Label(grid_users, text=users[row_user][1], **cell_style).grid(
                     row=row_user, column=2, sticky="nsew")
+                tk.Label(grid_users, text=users[row_user][2], **cell_style).grid(
+                    row=row_user, column=3, sticky="nsew")
 
             # ---------- Dimensions ----------
             win.update_idletasks()
