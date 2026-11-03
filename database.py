@@ -1,6 +1,7 @@
 import sqlite3
 import os.path
 import bcrypt
+import random
 from datetime import datetime
 
 class Database:
@@ -168,6 +169,33 @@ class Database:
     #Date : 01/11/2026
     def get_id_connexion():
         return Database.__id_connexion
+
+    #AMBZ 02
+    #Date : 03/11/2026
+    #Créer un matricule pour le nouvelle utilisateur
+    @staticmethod
+    def create_id_number():
+        id_number = random.randrange(pow(9, 5) + 1) #00.00 est reservé pour le firstadmin
+        id_number = str(id_number)
+        # Avoir le format XX.XX
+        id_number = id_number[:2] + "." + id_number[-2:]
+        try: 
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            check_id_number_exists_query = "select count(id_number) from user_info where id_number = (?)"
+            cursor.execute(check_id_number_exists_query, (id_number,))
+            while cursor.fetchone()[0] != 0:
+                id_number = random.randrange(pow(9, 5) + 1) #00.00 est reservé pour le firstadmin
+                id_number = str(id_number)
+                id_number = id_number[:2] + "." + id_number[-2:]
+            return id_number
+        except Exception as e:
+            print(f"erreur dans la création de matricule: {e}")
+            return False
+        finally:
+            if 'conn' in locals() and conn.cursor():
+                cursor.close()
+                conn.close()
 
 
     #AMBZ 02

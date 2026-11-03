@@ -1,5 +1,4 @@
 import tkinter as tk
-import random
 from tkinter import messagebox, ttk
 from database import Database
 from network import NetworkCalculator
@@ -394,15 +393,9 @@ class FindMyIPApp:
             v.set(None) # initialiser
             tk.Label(container, text="Type d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w", pady=(5,15))
             tk.Radiobutton(container, text="Admin", variable=v, value="admin", bg="#f4f7f9").pack(side="left", padx=10, pady=5)
-            tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5)
+            tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5) 
 
-            #AMBZ 02
-            #Date : 03/11/2026
-            #Créer un matricule pour le nouvelle utilisateur
-            id_number = random.randrange(pow(9, 5) + 1) #00.00 est reservé pour le firstadmin
-            id_number = str(id_number)
-            # Avoir le format XX.XX
-            id_number = id_number[:2] + "." + id_number[-2:]
+            id_number = Database.create_id_number()         
 
             #AMBZ 02
             #Date : 10/10/2026
