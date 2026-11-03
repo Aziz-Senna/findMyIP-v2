@@ -240,11 +240,15 @@ class FindMyIPApp:
     #YAAL 01
     #Date : 
     #During : 
+    #YAAL 01
+    #Date : 03/11/2026
+    # Tâche 3 : fenêtre de découpe en sous-réseaux
     def open_decoupe(self):
         # Nouvelle fenêtre par-dessus le menu principal
+        # 850 de large pour les 5 colonnes, 600 de haut pour le résumé + le tableau
         win = tk.Toplevel(self.root)
         win.title("Découpe en Sous-Réseaux")
-        win.geometry("400x300")
+        win.geometry("850x600")
 
         # Champ 1 : l'adresse IP
         tk.Label(win, text="Adresse IP :").pack(pady=5)
@@ -255,17 +259,20 @@ class FindMyIPApp:
         tk.Label(win, text="Nombre de sous-réseaux :").pack(pady=5)
         ent_nb = tk.Entry(win)
         ent_nb.pack()
-                # Ce qui se passe quand on clique sur "Découper"
+
+        # Ce qui se passe quand on clique sur "Découper"
         def decouper():
             # On envoie les 2 champs à la calculatrice de subnetting.py
             res, err = SubnetCalculator.decouper_sous_reseaux(ent_ip.get(), ent_nb.get())
+            # Tâche 6 : on garde ce que l'utilisateur a tapé (fonctionnalité n°6)
             Database.save_activity(ent_ip.get(), ent_nb.get(), None, None, 6)
             if err:
                 # Problème : on affiche le message et on s'arrête là
                 messagebox.showerror("Erreur", err, parent=win)
                 return
+
             # Tout va bien : on écrit le résumé dans le label
-            lbl_resume.config(text=(
+            texte = (
                 f"Classe : {res['classe']}\n"
                 f"Réseau de départ : {res['reseau']}\n"
                 f"Masque de classe : {res['masque_classe']}\n"
@@ -274,21 +281,50 @@ class FindMyIPApp:
                 f"SR demandés : {res['nb_sr_demandes']}\n"
                 f"SR créés : {res['nb_sr_reels']}\n"
                 f"Machines par SR : {res['max_machines']}"
-            ))
-            # On enregistre la recette de la découpe dans la base (tâche 3)
-            #if not Database.save_subnetting(res["reseau"], res["nouveau_masque"],
-                                            #res["nb_sr_demandes"], res["max_machines"]):
-                #messagebox.showerror("Erreur", "La découpe n'a pas pu être enregistrée.", parent=win)
+            )
+            # Si la liste a été coupée (trop de SR), on le signale
+            if res["nb_sr_affiches"] < res["nb_sr_reels"]:
+                texte += f"\n⚠ Affichage limité aux {res['nb_sr_affiches']} premiers SR"
+            lbl_resume.config(text=texte)
 
+            # On vide le tableau, au cas où une découpe était déjà affichée
+            for ligne in tree.get_children():
+                tree.delete(ligne)
+            # On ajoute une ligne par sous-réseau
+            for sr in res["sous_reseaux"]:
+                tree.insert("", "end", values=(sr["numero"], sr["reseau"],
+                                               sr["premiere"], sr["derniere"], sr["broadcast"]))
 
+            # Tâche 3 : on enregistre la "recette" de la découpe dans addressing_table
+            if not Database.save_subnetting(res["reseau"], res["nouveau_masque"],
+                                            res["nb_sr_demandes"], res["max_machines"]):
+                messagebox.showerror("Erreur", "La découpe n'a pas pu être enregistrée.", parent=win)
 
         # Le bouton qui lance la découpe
         tk.Button(win, text="Découper", command=decouper,
-                    bg="#2980b9", fg="white").pack(pady=10)
+                  bg="#2980b9", fg="white").pack(pady=10)
 
         # Zone où le résumé s'affichera (vide au départ)
         lbl_resume = tk.Label(win, text="", fg="blue", justify="left")
         lbl_resume.pack(pady=5)
+
+        # Tableau des sous-réseaux (vide au départ, rempli par decouper())
+        cols = ("numero", "reseau", "premiere", "derniere", "broadcast")
+        tree = ttk.Treeview(win, columns=cols, show="headings")
+        tree.heading("numero", text="SR")
+        tree.heading("reseau", text="Adresse réseau")
+        tree.heading("premiere", text="1re machine")
+        tree.heading("derniere", text="Dernière machine")
+        tree.heading("broadcast", text="Broadcast")
+        tree.column("numero", width=50, anchor="center")
+
+        # Barre de défilement reliée au tableau (posée AVANT le tableau,
+        # sinon le tableau prend toute la place et la barre n'a plus d'espace)
+        scrollbar = ttk.Scrollbar(win, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y", pady=10)
+        tree.pack(expand=True, fill="both", padx=10, pady=10)
+        
 
     def open_comm(self):
         win = tk.Toplevel(self.root)

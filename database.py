@@ -89,17 +89,32 @@ class Database:
         create_used_table_query = """create table if not exists activities(
             fkIdFeature integer not null references features(idFeature),
             modifiedBy varchar(20) not null references userInfo(nameUser),
-            dateOfUse datetime not null, 
-            entry1 varchar(50), 
-            entry2 varchar(50), 
-            entry3 varchar(50), 
+            dateOfUse datetime not null,
+            entry1 varchar(50),
+            entry2 varchar(50),
+            entry3 varchar(50),
             entry4 varchar(50))"""
 
         cursor.execute(create_used_table_query)
         conn.commit()
 
+        #YAAL 01
+        #Date : 03/11/2026
+        # Tâche 3 : table d'adressage validée par la prof.
+        # On garde la "recette" de chaque découpe, pas la liste des sous-réseaux.
+        create_addressing_table_query = """create table if not exists addressing_table(
+            idAddressing integer primary key autoincrement,
+            network varchar(15) not null,
+            mask varchar(15) not null,
+            nbSubnets integer not null,
+            maxHosts integer not null,
+            modifiedBy varchar(20) not null references userInfo(nameUser),
+            modifiedDate datetime not null)"""
+        cursor.execute(create_addressing_table_query)
+        conn.commit()
+
         cursor.close()
-        conn.close()      
+        conn.close()    
 
     #AMBZ 02 
     #Date : 07/10/2026
@@ -287,6 +302,33 @@ class Database:
             print(f"erreur d'enregistrement de la connexion': {e}")
             return False
         finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
+    #YAAL 01
+    #Date : 03/11/2026
+    # Tâche 3 : écrit une ligne (la "recette" d'une découpe) dans la table d'adressage.
+    # On ne stocke que ce qu'il faut pour regénérer la découpe, pas la liste des sous-réseaux.
+    # Renvoie True si l'enregistrement a réussi, False sinon.
+    @staticmethod
+    def save_subnetting(network, mask, nb_subnets, max_hosts):
+        try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            # Les "?" sont remplacés dans l'ordre par les valeurs du tuple (protection contre l'injection SQL).
+            # idAddressing se remplit tout seul (autoincrement).
+            cursor.execute("""insert into addressing_table
+                (network, mask, nbSubnets, maxHosts, modifiedBy, modifiedDate)
+                values (?, ?, ?, ?, ?, ?)""",
+                (network, mask, nb_subnets, max_hosts, Database.get_current_user(),
+                 datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"erreur d'enregistrement de la découpe: {e}")
+            return False
+        finally:
+            # Dans tous les cas (réussite ou erreur), on ferme la connexion
             if 'conn' in locals():
                 cursor.close()
                 conn.close()
