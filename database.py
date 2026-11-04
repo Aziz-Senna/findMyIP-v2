@@ -42,38 +42,6 @@ class Database:
             ('00.00', 'firstadmin', '$2b$12$9bKppilobc0wqkG9VnjZ3uHjOqbRNT8C8TCeckF/OodN49peqRl.W', 'admin'))
         conn.commit()
 
-
-        #AMBZ 02
-        #Date : 29/10/2026
-        create_feature_table_query = """create table if not exists features(
-            id_feature integer primary key autoincrement,
-            name_feature varchar(30) not null)"""
-
-        cursor.execute(create_feature_table_query)
-        cursor.execute("insert into features (name_feature) values (?)", ('Générateur de Masques',))
-        conn.commit()
-
-        cursor.execute("insert into features (name_feature) values (?)", ('Validateur Format IP',))
-        conn.commit()
-
-        cursor.execute("insert into features (name_feature) values (?)", ('Analyseur de Propriétés',))
-        conn.commit()
-
-        cursor.execute("insert into features (name_feature) values (?)", ('Masque de Classe',))
-        conn.commit()
-
-        cursor.execute("insert into features (name_feature) values (?)", ('Réseau & Sous-Réseau',))
-        conn.commit()
-
-        cursor.execute("insert into features (name_feature) values (?)", ('Découpe en Sous-Réseaux',))
-        conn.commit()
-
-        cursor.execute("insert into features (name_feature) values (?)", ('Vérificateur Connexion',))
-        conn.commit()
-
-        cursor.execute("insert into features (name_feature) values (?)", ('Infos Application',))
-        conn.commit()
-
         create_connexion_query = """create table if not exists connexion(
             id_connexion integer primary key autoincrement, 
             date_login datetime not null, 
@@ -89,8 +57,8 @@ class Database:
         #Date : 01/11/2026
         #J'évite les alter table pour garder cette ordre précis. Sinon je devrais mettre les clés étrangères en dernier et c'est pas beau.
         create_used_table_query = """create table if not exists activities(
-            fk_id_feature smallint not null references features(id_feature),
             modified_by varchar(5) not null references user_info(id_number),
+            name_feature varchar(30) not null,
             date_of_use datetime not null,
             entry1 varchar(50),
             entry2 varchar(50),
@@ -106,15 +74,14 @@ class Database:
         # On garde la "recette" de chaque découpe, pas la liste des sous-réseaux.
         create_addressing_table_query = """create table if not exists addressing_table(
             id_addressing integer primary key autoincrement,
+            modified_by varchar(5) not null references user_info(id_number),
+            modified_date datetime not null,
             network varchar(15) not null,
             mask varchar(15) not null,
             nb_subnets integer not null,
-            max_hosts integer not null,
-            modified_by varchar(5) not null references user_info(id_number),
-            modified_date datetime not null)"""
+            max_hosts integer not null)"""
         cursor.execute(create_addressing_table_query)
         conn.commit()
-
         cursor.close()
         conn.close()    
 
@@ -291,27 +258,27 @@ class Database:
     #Date : 02/11/2026    
     @staticmethod
     # Les entry sauvegardent ce que l'utilisateur entre, et non les résultats.
-    def save_activity(entry1, entry2, entry3, entry4, id_feature):
+    def save_activity(entry1, entry2, entry3, entry4, name_feature):
         try:
             conn = Database.get_db_connection()
             cursor = conn.cursor()
 
-            #Vérifier si l'identifiant de l'activité a déjà été enregistré.
-            cursor.execute("select count(fk_id_feature) from activities where fk_id_feature = (?)", (id_feature,))
+            #Vérifier si le nom de l'activité a déjà été enregistré.
+            cursor.execute("select count(name_feature) from activities where name_feature = (?)", (name_feature,))
             countFeature = cursor.fetchone()[0]
 
             if countFeature != 0:
                 cursor.execute("""update activities 
-                    set modified_by = (?), date_of_use = (?),  
-                    entry1 = (?), entry2 = (?), entry3 = (?), entry4 = (?) where fk_id_feature = (?)""", 
-                    (Database.get_current_user(), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4, id_feature))
+                    set modified_by = (?), name_feature = (?), date_of_use = (?),  
+                    entry1 = (?), entry2 = (?), entry3 = (?), entry4 = (?) where name_feature = (?)""", 
+                    (Database.get_current_user(), name_feature, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4))
                 conn.commit()
             else:
                 cursor.execute("""insert into activities values (?, ?, ?, ?, ?, ?, ?)""",
-                    (id_feature, Database.get_current_user(), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4))
+                    (Database.get_current_user(), name_feature, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4))
                 conn.commit()
 
-            # Afficher la db par dernière date de modification en utilisant une vue.
+            # Afficher la table activities par dernière date de modification en utilisant une vue.
             cursor.execute("create view if not exists recent_activities as select * from activities order by date_of_use desc")
             conn.commit()
             return True
@@ -347,6 +314,10 @@ class Database:
                 cursor.execute("update connexion set date_logout = ? where id_connexion = ?", 
                     (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), Database.get_id_connexion()))
                 conn.commit()
+
+            # Afficher la table connexion par dernière date de déconnexion en utilisant une vue.
+            cursor.execute("create view if not exists recent_connexion as select * from connexion order by date_logout desc")
+            conn.commit()
 
             return True
         except Exception as e:

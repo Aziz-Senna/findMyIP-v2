@@ -168,7 +168,6 @@ class FindMyIPApp:
             else:
                 #On récupère l'erreur.
                 lbl_res.config(text=f"{NetworkCalculator.check_ip(ip)}", fg="red")
-            Database.save_activity(ip, None, None, None, 2)
         tk.Button(win, text="Valider", command=validate).pack(pady=10)
 
     def open_analysor(self):
@@ -187,7 +186,6 @@ class FindMyIPApp:
                 lbl_res.config(text=msg, fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")
-            Database.save_activity(ip, None, None, None, 3)
             
         tk.Button(win, text="Analyser", command=analyse).pack(pady=10)
         
@@ -206,7 +204,6 @@ class FindMyIPApp:
                 lbl_res.config(text=f"Classe : {classe}\nMasque par défaut : {masque}", fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red") 
-            Database.save_activity(ip, None, None, None, 4)
         tk.Button(win, text="Obtenir Masque", command=get).pack(pady=10)
 
     def open_subnetting(self):
@@ -235,7 +232,6 @@ class FindMyIPApp:
                     lbl_res.config(text=txt, fg="blue")
             else:
                 err = messagebox.showerror("Erreur", NetworkCalculator.check_ip(ent_ip.get()))
-            Database.save_activity(ent_ip.get(), ent_m.get(), None, None, 5)
         tk.Button(win, text="Calculer", command=calculate).pack()
 
     #YAAL 01
@@ -266,7 +262,7 @@ class FindMyIPApp:
             # On envoie les 2 champs à la calculatrice de subnetting.py
             res, err = SubnetCalculator.decouper_sous_reseaux(ent_ip.get(), ent_nb.get())
             # Tâche 6 : on garde ce que l'utilisateur a tapé (fonctionnalité n°6)
-            Database.save_activity(ent_ip.get(), ent_nb.get(), None, None, 6)
+            Database.save_activity(ent_ip.get(), ent_nb.get(), None, None, "Découpe en Sous-Réseaux")
             if err:
                 # Problème : on affiche le message et on s'arrête là
                 messagebox.showerror("Erreur", err, parent=win)
@@ -351,7 +347,7 @@ class FindMyIPApp:
                 status = "Communication Possible ✅" if (m1_voit_m2 and m2_voit_m1) else "Problème de Routage ⚠️"
                 color = "green" if (m1_voit_m2 and m2_voit_m1) else "orange"
                 lbl_res.config(text=f"M1 -> M2: {m1_voit_m2}\nM2 -> M1: {m2_voit_m1}\n\n{status}", fg=color)
-            Database.save_activity(e1_ip.get(), e1_m.get(), e2_ip.get(), e2_m.get(), 7)
+            Database.save_activity(e1_ip.get(), e1_m.get(), e2_ip.get(), e2_m.get(), "Vérificateur Connexion")
 
         tk.Button(win, text="Vérifier", command=test, bg="#2980b9", fg="white").pack(pady=10)
 
@@ -632,7 +628,6 @@ class FindMyIPApp:
             "   -> Entrer les informations de l'utilisateur\n"
             "   -> validate les informations\n"
         )
-        Database.save_activity(None, None, None, None, 8)
         label_cadre = tk.Label(fenetre_info, text=texte_complet, justify="left", 
                               font=("Courier New", 10), padx=20, pady=20, bg="white", relief="sunken")
         label_cadre.pack(expand=True, fill="both", padx=10, pady=10)
