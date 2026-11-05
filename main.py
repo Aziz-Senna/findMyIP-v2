@@ -4,6 +4,7 @@ from database import Database
 from network import NetworkCalculator
 from subnetting import SubnetCalculator
 from datetime import datetime
+from security import SecurityManager
 
 class LoginWindow:
 
@@ -28,9 +29,9 @@ class LoginWindow:
         container = tk.Frame(self.root, bg="#f4f7f9")
         container.pack(pady=10, padx=40, fill="x")
 
-        tk.Label(container, text="Matricule d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
-        self.idnumber_entry = tk.Entry(container, font=("Segoe UI", 11))
-        self.idnumber_entry.pack(fill="x", pady=(5, 15))
+        tk.Label(container, text="Nom d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
+        self.username_entry = tk.Entry(container, font=("Segoe UI", 11))
+        self.username_entry.pack(fill="x", pady=(5, 15))
 
         tk.Label(container, text="Mot de passe", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
         self.password_entry = tk.Entry(container, show="*", font=("Segoe UI", 11))
@@ -53,11 +54,11 @@ class LoginWindow:
             self.btn_show.config(text="Afficher le mot de passe")
 
     def validate_connexion(self):
-        id_number = self.idnumber_entry.get().strip()
+        username = self.username_entry.get().strip()
         password = self.password_entry.get()
 
-        if Database.check_login(id_number, password):
-            role = Database.check_login(id_number , password)
+        if Database.check_login(username, password):
+            role = Database.check_login(username , password)
             self.execute_dashbord(role)
         else:
             messagebox.showerror("Erreur", "Identifiants incorrects")
@@ -82,13 +83,28 @@ class FindMyIPApp:
         
         Database.save_connexion("login")        
         self.setup_main_menu()
+    # Bouton de sécurité (admins seulement) : demande ou confirmation
+    # du changement de mot de passe obligatoire pour tous les utilisateurs.
+    def open_security_button(self):
+        # On demande d'abord confirmation : c'est une action importante
+        ok = messagebox.askyesno("Sécurité",
+            "En cas de vol de la base de données, cette action oblige TOUS les "
+            "utilisateurs à changer leur mot de passe à leur prochaine connexion.\n\n"
+            "Elle doit être validée par 2 administrateurs différents.\n\n"
+            "Voulez-vous continuer ?")
+        if not ok:
+            return
+        # on demande a security.py de tainter le clic
+        success , message = SecurityManager.security_button()
+        if success:
+            messagebox.showinfo("Sécuité",message)
+        else:
+            messagebox.showerror("Sécuité",message)
+
 
     def setup_main_menu(self):
         tk.Label(self.root, text="FINDMYIP", font=("Segoe UI", 24, "bold"), 
-                 bg="#f4f7f9", fg="#2c3e50").pack(pady=15)
-
-        tk.Label(self.root, text=f"Bienvenue {Database.get_current_username()} !", font=("Segoe UI", 24, "bold"), 
-                 bg="#f4f7f9", fg="#2c3e50").pack(pady=15)
+                 bg="#f4f7f9", fg="#2c3e50").pack(pady=30)
         
         # Grille pour les boutons
         container = tk.Frame(self.root, bg="#f4f7f9")
@@ -100,11 +116,7 @@ class FindMyIPApp:
             ("Analyseur de Propriétés", self.open_analysor),
             ("Masque de Classe", self.open_class_mask),
             ("Réseau & Sous-Réseau", self.open_subnetting),
-
-            #YAAL 01
-            #Date : 
             ("Découpe en Sous-Réseaux", self.open_decoupe),
-
             ("Vérificateur Connexion", self.open_comm),
             ("Infos Application", self.open_informations), 
             ("Se déconnecter", self.close_connexion)
@@ -112,6 +124,7 @@ class FindMyIPApp:
         
         if self.role == "admin":
             buttons.insert(6,("Gestion des utilisateurs", self.handle_users))
+            buttons.insert(7,("Sécurité: changer tous les mdp", self.open_security_button))
 
         for i, (text, func) in enumerate(buttons):
             row, col = divmod(i, 2)
@@ -168,6 +181,7 @@ class FindMyIPApp:
             else:
                 #On récupère l'erreur.
                 lbl_res.config(text=f"{NetworkCalculator.check_ip(ip)}", fg="red")
+            Database.save_activity(ip, None, None, None, 2)
         tk.Button(win, text="Valider", command=validate).pack(pady=10)
 
     def open_analysor(self):
@@ -186,6 +200,7 @@ class FindMyIPApp:
                 lbl_res.config(text=msg, fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")
+            Database.save_activity(ip, None, None, None, 3)
             
         tk.Button(win, text="Analyser", command=analyse).pack(pady=10)
         
@@ -204,6 +219,7 @@ class FindMyIPApp:
                 lbl_res.config(text=f"Classe : {classe}\nMasque par défaut : {masque}", fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red") 
+            Database.save_activity(ip, None, None, None, 4)
         tk.Button(win, text="Obtenir Masque", command=get).pack(pady=10)
 
     def open_subnetting(self):
@@ -232,6 +248,7 @@ class FindMyIPApp:
                     lbl_res.config(text=txt, fg="blue")
             else:
                 err = messagebox.showerror("Erreur", NetworkCalculator.check_ip(ent_ip.get()))
+            Database.save_activity(ent_ip.get(), ent_m.get(), None, None, 5)
         tk.Button(win, text="Calculer", command=calculate).pack()
 
     #YAAL 01
@@ -262,7 +279,7 @@ class FindMyIPApp:
             # On envoie les 2 champs à la calculatrice de subnetting.py
             res, err = SubnetCalculator.decouper_sous_reseaux(ent_ip.get(), ent_nb.get())
             # Tâche 6 : on garde ce que l'utilisateur a tapé (fonctionnalité n°6)
-            Database.save_activity(ent_ip.get(), ent_nb.get(), None, None, "Découpe en Sous-Réseaux")
+            Database.save_activity(ent_ip.get(), ent_nb.get(), None, None, 6)
             if err:
                 # Problème : on affiche le message et on s'arrête là
                 messagebox.showerror("Erreur", err, parent=win)
@@ -347,7 +364,7 @@ class FindMyIPApp:
                 status = "Communication Possible ✅" if (m1_voit_m2 and m2_voit_m1) else "Problème de Routage ⚠️"
                 color = "green" if (m1_voit_m2 and m2_voit_m1) else "orange"
                 lbl_res.config(text=f"M1 -> M2: {m1_voit_m2}\nM2 -> M1: {m2_voit_m1}\n\n{status}", fg=color)
-            Database.save_activity(e1_ip.get(), e1_m.get(), e2_ip.get(), e2_m.get(), "Vérificateur Connexion")
+            Database.save_activity(e1_ip.get(), e1_m.get(), e2_ip.get(), e2_m.get(), 7)
 
         tk.Button(win, text="Vérifier", command=test, bg="#2980b9", fg="white").pack(pady=10)
 
@@ -389,9 +406,7 @@ class FindMyIPApp:
             v.set(None) # initialiser
             tk.Label(container, text="Type d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w", pady=(5,15))
             tk.Radiobutton(container, text="Admin", variable=v, value="admin", bg="#f4f7f9").pack(side="left", padx=10, pady=5)
-            tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5) 
-
-            id_number = Database.create_id_number()         
+            tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5)
 
             #AMBZ 02
             #Date : 10/10/2026
@@ -456,8 +471,8 @@ class FindMyIPApp:
 
                     else:
                         #On teste l'enregistrement d'utilisateur
-                        if Database.save_user(id_number, user, v.get(), pwd):
-                            Database.save_user(id_number, user, v.get(), pwd)
+                        if Database.save_user(user, v.get(), pwd):
+                            Database.save_user(user, v.get(), pwd)
                             messagebox.showinfo("Succès", "Utilisateur enregistré !")
                             win.destroy()
                         else:
@@ -466,12 +481,8 @@ class FindMyIPApp:
                     messagebox.showwarning("Attention", "Remplis tous les champs.")
         
             tk.Button(win, text="AJOUTER", command=save,
-                bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"),
-                relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")
-            
-            tk.Label(win, text=f"Voici votre matricule, veuillez le mémoriser : {id_number}",
-                fg="#2980b9", bg="#f4f7f9", font=("Segoe UI", 10, "bold")).pack(fill="x", padx=40)
-
+                    bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"),
+                    relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")
 
         #AMBZ 02
         #Date : 28/10/2026
@@ -483,7 +494,7 @@ class FindMyIPApp:
 
             win = tk.Toplevel(self.root)
             win.title("Supprimer un utilisateur")
-            win.geometry("750x500")
+            win.geometry("500x500")
             win.configure(bg="#f4f7f9")
             win.resizable(False, False)
             win.grid_columnconfigure(0, weight=1)
@@ -500,7 +511,7 @@ class FindMyIPApp:
 
             def set_value(value):
                 user_to_delete.set(value)
-                user_selected.config(text=f"Vous avez sélectionné : {users[value][1]}")
+                user_selected.config(text=f"Vous avez sélectionné : {users[value][0]}")
 
             def delete():
                 index = user_to_delete.get()
@@ -521,7 +532,7 @@ class FindMyIPApp:
             header = tk.Frame(grid_users, bg="#f4f7f9")
             header.grid(row=0, column=0, sticky="w")
             header_labels = []
-            for col, titre in enumerate(["Index", "Matricule", "Nom d'utilisateur", "Rôle"]):
+            for col, titre in enumerate(["Index", "Nom d'utilisateur", "Rôle"]):
                 lbl = tk.Label(header, text=titre, **cell_style)
                 lbl.grid(row=0, column=col)
                 header_labels.append(lbl)
@@ -555,8 +566,6 @@ class FindMyIPApp:
                     row=row_user, column=1, sticky="nsew")
                 tk.Label(grid_users, text=users[row_user][1], **cell_style).grid(
                     row=row_user, column=2, sticky="nsew")
-                tk.Label(grid_users, text=users[row_user][2], **cell_style).grid(
-                    row=row_user, column=3, sticky="nsew")
 
             # ---------- Dimensions ----------
             win.update_idletasks()
@@ -628,6 +637,7 @@ class FindMyIPApp:
             "   -> Entrer les informations de l'utilisateur\n"
             "   -> validate les informations\n"
         )
+        Database.save_activity(None, None, None, None, 8)
         label_cadre = tk.Label(fenetre_info, text=texte_complet, justify="left", 
                               font=("Courier New", 10), padx=20, pady=20, bg="white", relief="sunken")
         label_cadre.pack(expand=True, fill="both", padx=10, pady=10)

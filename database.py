@@ -36,9 +36,10 @@ class Database:
             username varchar(20) not null, 
             password_user varchar(100) not null, 
             role varchar(5) not null, 
+            must_change_password integer not null default 0,
             primary key(id_number))"""
         cursor.execute(create_user_table_query)
-        cursor.execute("insert into user_info values (?, ?, ?, ?)", 
+        cursor.execute("insert into user_info (id_number, username, password_user, role) values (?, ?, ?, ?)", 
             ('00.00', 'firstadmin', '$2b$12$9bKppilobc0wqkG9VnjZ3uHjOqbRNT8C8TCeckF/OodN49peqRl.W', 'admin'))
         conn.commit()
 
@@ -82,6 +83,20 @@ class Database:
             max_hosts integer not null)"""
         cursor.execute(create_addressing_table_query)
         conn.commit()
+        
+        #YAAL 01
+        #Date : 05/11/2026
+        # Bouton de sécurité : garde les demandes de changement de mot de passe.
+        # Une demande doit être confirmée par un 2e admin, différent du premier.
+        create_security_request_query = """create table if not exists security_request(
+            id_request integer primary key autoincrement,
+            requested_by varchar(5) not null references user_info(id_number),
+            request_date datetime not null,
+            confirmed_by varchar(5) references user_info(id_number),
+            confirm_date datetime)"""
+        cursor.execute(create_security_request_query)
+        conn.commit()
+        
         cursor.close()
         conn.close()    
 
@@ -176,7 +191,7 @@ class Database:
             
             salt = bcrypt.gensalt()
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
-            cursor.execute("insert into user_info values (?,?,?,?)", (id_number, username, hashed_password, role))
+            cursor.execute("insert into user_info (id_number, username, password_user, role) values (?,?,?,?)", (id_number, username, hashed_password, role))
             conn.commit()
             return True
         except Exception as e:
@@ -271,11 +286,11 @@ class Database:
                 cursor.execute("""update activities 
                     set modified_by = (?), name_feature = (?), date_of_use = (?),  
                     entry1 = (?), entry2 = (?), entry3 = (?), entry4 = (?) where name_feature = (?)""", 
-                    (Database.get_current_user(), name_feature, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4))
+                    (Database.get_current_user(), name_feature, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4,name_feature))
                 conn.commit()
             else:
                 cursor.execute("""insert into activities values (?, ?, ?, ?, ?, ?, ?)""",
-                    (Database.get_current_user(), name_feature, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4))
+                    (Database.get_current_user(), name_feature, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4,name_feature))
                 conn.commit()
 
             # Afficher la table activities par dernière date de modification en utilisant une vue.
