@@ -379,6 +379,10 @@ class FindMyIPApp:
         win.geometry("450x300")
 
         def open_add_user():
+            if Database.nb_users() == pow(9,4):
+                messagebox.showerror("Erreur", "Impossible d'ajouter un nouvel utilisateur, la capacité maximale (6561) est atteinte.")
+                return
+            
             win = tk.Toplevel(self.root)
             win.title("Ajouter un utilisateur")
             win.geometry("400x500")
