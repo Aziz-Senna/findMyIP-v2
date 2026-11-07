@@ -24,9 +24,6 @@ class NetworkCalculator:
             })
         return list_masques
 
-    #AMBZ 02
-    #Date : 11/10/2026
-    #During : 15minutes
     #Initialement, la méthode retourne un bool mais on retourne plutôt l'erreur en string.
     @staticmethod
     def check_ip(ip_input):
