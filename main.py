@@ -57,11 +57,63 @@ class LoginWindow:
         username = self.username_entry.get().strip()
         password = self.password_entry.get()
 
-        if Database.check_login(username, password):
-            role = Database.check_login(username , password)
-            self.execute_dashbord(role)
+        role = Database.check_login(username, password)
+        if role:
+
+            # Bouton de sécurité : si l'étiquette vaut 1, on oblige à changer
+            # de mot de passe AVANT d'accéder au menu (ce n'est pas un blocage)
+            if SecurityManager.must_change_password():
+                self.open_change_password(role)
+            else:
+                self.execute_dashbord(role)
         else:
             messagebox.showerror("Erreur", "Identifiants incorrects")
+
+
+    # Fenêtre affichée après le bouton de sécurité : l'utilisateur doit choisir
+    # un nouveau mot de passe avant d'arriver au menu.
+    def open_change_password(self, role):
+        win = tk.Toplevel(self.root)
+        win.title("Nouveau mot de passe obligatoire")
+        win.geometry("400x350")
+        win.configure(bg="#f4f7f9")
+        win.resizable(False, False)
+        win.grab_set()   # on ne peut plus cliquer sur la fenêtre de connexion derrière
+
+        tk.Label(win, text="Par mesure de sécurité,\nvous devez changer votre mot de passe.",
+                 font=("Segoe UI", 11, "bold"), bg="#f4f7f9", fg="#2c3e50").pack(pady=20)
+
+        tk.Label(win, text="Nouveau mot de passe", bg="#f4f7f9").pack()
+        ent_new = tk.Entry(win, show="*", font=("Segoe UI", 11))
+        ent_new.pack(pady=5)
+
+        tk.Label(win, text="Confirmer le mot de passe", bg="#f4f7f9").pack()
+        ent_confirm = tk.Entry(win, show="*", font=("Segoe UI", 11))
+        ent_confirm.pack(pady=5)
+
+        def valider():
+            new_pwd = ent_new.get()
+            # Vérifications de base sur le nouveau mot de passe
+            if new_pwd != ent_confirm.get():
+                messagebox.showerror("Erreur", "Les deux mots de passe ne sont pas identiques.", parent=win)
+            elif len(new_pwd) < 8:
+                messagebox.showerror("Erreur", "Le mot de passe doit faire au moins 8 caractères.", parent=win)
+            elif " " in new_pwd or new_pwd.isdigit() or new_pwd.isalpha():
+                messagebox.showerror("Erreur",
+                    "Le mot de passe doit contenir des lettres et des chiffres, sans espace.", parent=win)
+            else:
+                # On enregistre (security.py vérifie aussi qu'il est différent de l'ancien)
+                success, message = SecurityManager.change_password(new_pwd)
+                if success:
+                    messagebox.showinfo("Succès", message, parent=win)
+                    win.destroy()
+                    self.execute_dashbord(role)   # enfin, le menu
+                else:
+                    messagebox.showerror("Erreur", message, parent=win)
+
+        tk.Button(win, text="VALIDER", command=valider, bg="#2ecc71", fg="white",
+                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=20)
+            
 
     def execute_dashbord(self, role):
         for widget in self.root.winfo_children():
@@ -97,7 +149,7 @@ class FindMyIPApp:
         # on demande a security.py de tainter le clic
         success , message = SecurityManager.security_button()
         if success:
-            messagebox.showinfo("Sécuité",message)
+            messagebox.showinfo("Sécuité", message)
         else:
             messagebox.showerror("Sécuité",message)
 
@@ -408,6 +460,9 @@ class FindMyIPApp:
             tk.Radiobutton(container, text="Admin", variable=v, value="admin", bg="#f4f7f9").pack(side="left", padx=10, pady=5)
             tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5)
 
+
+            id_number = Database.create_id_number()
+
             #AMBZ 02
             #Date : 10/10/2026
             #During : 10secondes (car il vient de son ancien projet)
@@ -471,8 +526,8 @@ class FindMyIPApp:
 
                     else:
                         #On teste l'enregistrement d'utilisateur
-                        if Database.save_user(user, v.get(), pwd):
-                            Database.save_user(user, v.get(), pwd)
+                        if Database.save_user(id_number,user, v.get(), pwd):
+                            Database.save_user(id_number,user, v.get(), pwd)
                             messagebox.showinfo("Succès", "Utilisateur enregistré !")
                             win.destroy()
                         else:
@@ -483,6 +538,9 @@ class FindMyIPApp:
             tk.Button(win, text="AJOUTER", command=save,
                     bg="#2ecc71", fg="white", font=("Segoe UI", 12, "bold"),
                     relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")
+            tk.Label(win, text=f"Voici votre matricule, veuillez le mémoriser : {id_number}",
+                fg="#2980b9", bg="#f4f7f9", font=("Segoe UI", 10, "bold")).pack(fill="x", padx=40)
+            
 
         #AMBZ 02
         #Date : 28/10/2026

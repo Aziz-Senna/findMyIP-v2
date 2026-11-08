@@ -6,6 +6,8 @@
 from datetime import datetime
 from locale import currency
 
+import bcrypt
+
 from database import Database
 
 
@@ -55,10 +57,58 @@ class SecurityManager:
         if 'conn' in locals():
             cursor.close()
             conn.close()
-      
 
+    # Regarde l'étiquette de l'utilisateur connecté.
+    # Renvoie True s'il doit changer son mot de passe, False sinon.
+  @staticmethod
+  def must_change_password():
+        try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("select must_change_password from user_info where id_number = ?",
+                           (Database.get_current_user(),))
+            result = cursor.fetchone()
+            # result vaut par exemple (1,) : on regarde la première case
+            return result is not None and result[0] == 1
+        except Exception as e:
+            print(f"erreur de vérification du mot de passe: {e}")
+            return False
+        finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
 
+    # Enregistre le nouveau mot de passe de l'utilisateur connecté
+    # et enlève l'étiquette (must_change_password repasse à 0).
+    # Renvoie (True ou False, message à afficher).
+  @staticmethod
+  def change_password(new_password):
+        try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            current = Database.get_current_user()
 
-      
+            # On récupère l'ancien mot de passe (haché) pour le comparer
+            cursor.execute("select password_user from user_info where id_number = ?", (current,))
+            old_hash = cursor.fetchone()[0]
+            if isinstance(old_hash, str):
+                old_hash = old_hash.encode('utf-8')
 
-      
+            # L'ancien mot de passe a peut-être été volé : on refuse de le réutiliser
+            if bcrypt.checkpw(new_password.encode('utf-8'), old_hash):
+                return False, "Le nouveau mot de passe doit être différent de l'ancien."
+
+            # On hache le nouveau mot de passe, comme dans save_user
+            new_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+            # On l'enregistre et on enlève l'étiquette
+            cursor.execute("update user_info set password_user = ?, must_change_password = 0 where id_number = ?",
+                           (new_hash, current))
+            conn.commit()
+            return True, "Mot de passe changé avec succès."
+        except Exception as e:
+            print(f"erreur de changement de mot de passe: {e}")
+            return False, "Erreur lors du changement de mot de passe."
+        finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()

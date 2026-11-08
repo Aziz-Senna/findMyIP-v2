@@ -290,7 +290,7 @@ class Database:
                 conn.commit()
             else:
                 cursor.execute("""insert into activities values (?, ?, ?, ?, ?, ?, ?)""",
-                    (Database.get_current_user(), name_feature, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4,name_feature))
+                    (Database.get_current_user(), name_feature, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), entry1, entry2, entry3, entry4))
                 conn.commit()
 
             # Afficher la table activities par dernière date de modification en utilisant une vue.
