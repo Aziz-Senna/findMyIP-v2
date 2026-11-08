@@ -29,7 +29,7 @@ class LoginWindow:
         container = tk.Frame(self.root, bg="#f4f7f9")
         container.pack(pady=10, padx=40, fill="x")
 
-        tk.Label(container, text="Nom d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
+        tk.Label(container, text="Matricule de l'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
         self.username_entry = tk.Entry(container, font=("Segoe UI", 11))
         self.username_entry.pack(fill="x", pady=(5, 15))
 
@@ -364,12 +364,16 @@ class FindMyIPApp:
         win.title("Gestion des utilisateurs")
         win.geometry("500x300")
 
+        def clear_window():
+            for widget in win.winfo_children():
+                widget.destroy()
+
         def open_add_user():
             if Database.nb_users() == pow(9,4):
                 messagebox.showerror("Erreur", "Impossible d'ajouter un nouvel utilisateur, la capacité maximale (6561) est atteinte.")
                 return
             
-            win = tk.Toplevel(self.root)
+            clear_window()
             win.title("Ajouter un utilisateur")
             win.geometry("400x500")
             win.configure(bg="#f4f7f9")
@@ -466,7 +470,8 @@ class FindMyIPApp:
 
             if users is None:
                 users = Database.get_users()
-            win = tk.Toplevel(self.root)
+
+            clear_window()
             win.title("Supprimer un utilisateur")
             win.geometry("700x500")
             win.configure(bg="#f4f7f9")
