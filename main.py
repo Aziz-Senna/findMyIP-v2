@@ -470,7 +470,7 @@ class FindMyIPApp:
             win.title("Supprimer un utilisateur")
             win.geometry("700x500")
             win.configure(bg="#f4f7f9")
-            win.resizable(False, True)
+            win.resizable(True, True)
             win.grid_columnconfigure(0, weight=1)
 
             MAX_VISIBLE = 6   # nombre de lignes visibles sans défiler
@@ -478,9 +478,6 @@ class FindMyIPApp:
             # Style commun à toutes les cellules
             cell_style = dict(bg="#f4f7f9", fg="#2c3e50", font=("Segoe UI", 12, "bold"),
                             width=15, height=2, borderwidth=1, relief="solid")
-
-            # L'indice de l'utilisateur à supprimer (-1 = aucun)
-            user_to_delete = tk.IntVar(value=-1)
 
             def set_value(value):
                 user_to_delete.set(value)
@@ -503,7 +500,21 @@ class FindMyIPApp:
                     return
                 users = Database.research_user(search_entry.get())  
                 win.destroy()
-                open_delete_user(users)            
+                open_delete_user(users) 
+
+            def to_filter(event):
+                if Database.filter(type_role.get()) == False:
+                    messagebox.showerror("Erreur", "Le filtre n'a pas pu s'effectuer.")
+                    return
+                if type_role.get() == 'Tous':
+                    users = Database.get_users()
+                else:
+                    users = Database.filter(type_role.get())
+                win.destroy()
+                open_delete_user(users)
+
+            # L'indice de l'utilisateur à supprimer (-1 = aucun)
+            user_to_delete = tk.IntVar(value=-1)
 
             # ---------- Conteneur du grid_users----------
             grid_users = tk.Frame(win, bg="#f4f7f9")
@@ -522,6 +533,16 @@ class FindMyIPApp:
             search_entry.grid(row=0, column=1, ipady=3)
             search_entry.focus_set()
             tk.Button(search_frame, text="Rechercher", font=("Segoe UI", 8, "bold"), command=research).grid(row=0, column=2, padx=10)
+
+            # ---------- Filtrage des utilisateurs ----------
+            tk.Label(search_frame, text="Filtre des utilisateurs :", font=("Segoe UI", 8, "bold"),
+                bg="#f4f7f9", fg="#2c3e50").grid(row=0, column=3, padx=(80, 10))            
+
+            type_role = tk.StringVar()
+            filter = ttk.Combobox(search_frame, textvariable=type_role)
+            filter['values'] = ['Tous', 'admin', 'user']
+            filter.grid(row=0, column=4)
+            filter.bind('<<ComboboxSelected>>', to_filter)
 
             # Titres (fixes, ne défilent pas)
             header = tk.Frame(grid_users, bg="#f4f7f9")
