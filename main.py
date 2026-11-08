@@ -1,4 +1,5 @@
 import tkinter as tk
+import random
 from tkinter import messagebox, ttk
 from database import Database
 from network import NetworkCalculator
@@ -29,7 +30,7 @@ class LoginWindow:
         container = tk.Frame(self.root, bg="#f4f7f9")
         container.pack(pady=10, padx=40, fill="x")
 
-        tk.Label(container, text="Nom d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
+        tk.Label(container, text="Matricule de l'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w")
         self.username_entry = tk.Entry(container, font=("Segoe UI", 11))
         self.username_entry.pack(fill="x", pady=(5, 15))
 
@@ -57,63 +58,11 @@ class LoginWindow:
         username = self.username_entry.get().strip()
         password = self.password_entry.get()
 
-        role = Database.check_login(username, password)
-        if role:
-
-            # Bouton de sécurité : si l'étiquette vaut 1, on oblige à changer
-            # de mot de passe AVANT d'accéder au menu (ce n'est pas un blocage)
-            if SecurityManager.must_change_password():
-                self.open_change_password(role)
-            else:
-                self.execute_dashbord(role)
+        if Database.check_login(username, password):
+            role = Database.check_login(username , password)
+            self.execute_dashbord(role)
         else:
             messagebox.showerror("Erreur", "Identifiants incorrects")
-
-
-    # Fenêtre affichée après le bouton de sécurité : l'utilisateur doit choisir
-    # un nouveau mot de passe avant d'arriver au menu.
-    def open_change_password(self, role):
-        win = tk.Toplevel(self.root)
-        win.title("Nouveau mot de passe obligatoire")
-        win.geometry("400x350")
-        win.configure(bg="#f4f7f9")
-        win.resizable(False, False)
-        win.grab_set()   # on ne peut plus cliquer sur la fenêtre de connexion derrière
-
-        tk.Label(win, text="Par mesure de sécurité,\nvous devez changer votre mot de passe.",
-                 font=("Segoe UI", 11, "bold"), bg="#f4f7f9", fg="#2c3e50").pack(pady=20)
-
-        tk.Label(win, text="Nouveau mot de passe", bg="#f4f7f9").pack()
-        ent_new = tk.Entry(win, show="*", font=("Segoe UI", 11))
-        ent_new.pack(pady=5)
-
-        tk.Label(win, text="Confirmer le mot de passe", bg="#f4f7f9").pack()
-        ent_confirm = tk.Entry(win, show="*", font=("Segoe UI", 11))
-        ent_confirm.pack(pady=5)
-
-        def valider():
-            new_pwd = ent_new.get()
-            # Vérifications de base sur le nouveau mot de passe
-            if new_pwd != ent_confirm.get():
-                messagebox.showerror("Erreur", "Les deux mots de passe ne sont pas identiques.", parent=win)
-            elif len(new_pwd) < 8:
-                messagebox.showerror("Erreur", "Le mot de passe doit faire au moins 8 caractères.", parent=win)
-            elif " " in new_pwd or new_pwd.isdigit() or new_pwd.isalpha():
-                messagebox.showerror("Erreur",
-                    "Le mot de passe doit contenir des lettres et des chiffres, sans espace.", parent=win)
-            else:
-                # On enregistre (security.py vérifie aussi qu'il est différent de l'ancien)
-                success, message = SecurityManager.change_password(new_pwd)
-                if success:
-                    messagebox.showinfo("Succès", message, parent=win)
-                    win.destroy()
-                    self.execute_dashbord(role)   # enfin, le menu
-                else:
-                    messagebox.showerror("Erreur", message, parent=win)
-
-        tk.Button(win, text="VALIDER", command=valider, bg="#2ecc71", fg="white",
-                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=20)
-            
 
     def execute_dashbord(self, role):
         for widget in self.root.winfo_children():
@@ -149,7 +98,7 @@ class FindMyIPApp:
         # on demande a security.py de tainter le clic
         success , message = SecurityManager.security_button()
         if success:
-            messagebox.showinfo("Sécuité", message)
+            messagebox.showinfo("Sécuité",message)
         else:
             messagebox.showerror("Sécuité",message)
 
@@ -190,8 +139,6 @@ class FindMyIPApp:
 
     # --- ACTIONS ---
 
-    #AMBZ 02
-    #Date : 02/11/2026
     #Enregistrer la date et heure déconnexion et fermer le programme.
     def close_programm(self):        
             Database.save_connexion("logout")
@@ -288,9 +235,6 @@ class FindMyIPApp:
         lbl_res.pack()
 
         def calculate():
-            #AMBZ 02
-            #Date : 11/10/2026
-            #During : 2minutes
             #Si le format de l'adresse IP est correct
             if NetworkCalculator.check_ip(ent_ip.get()) == "True":
                 res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
@@ -303,11 +247,6 @@ class FindMyIPApp:
             Database.save_activity(ent_ip.get(), ent_m.get(), None, None, 5)
         tk.Button(win, text="Calculer", command=calculate).pack()
 
-    #YAAL 01
-    #Date : 
-    #During : 
-    #YAAL 01
-    #Date : 03/11/2026
     # Tâche 3 : fenêtre de découpe en sous-réseaux
     def open_decoupe(self):
         # Nouvelle fenêtre par-dessus le menu principal
@@ -420,18 +359,22 @@ class FindMyIPApp:
 
         tk.Button(win, text="Vérifier", command=test, bg="#2980b9", fg="white").pack(pady=10)
 
-
-    #AMBZ 02
-    #Date : 28/10/2026
-    #During : 4h
     def handle_users(self):
         win = tk.Toplevel(self.root)
         win.resizable(False, False)
         win.title("Gestion des utilisateurs")
-        win.geometry("450x300")
+        win.geometry("500x300")
+
+        def clear_window():
+            for widget in win.winfo_children():
+                widget.destroy()
 
         def open_add_user():
-            win = tk.Toplevel(self.root)
+            if Database.nb_users() == pow(9,4):
+                messagebox.showerror("Erreur", "Impossible d'ajouter un nouvel utilisateur, la capacité maximale (6561) est atteinte.")
+                return
+            
+            clear_window()
             win.title("Ajouter un utilisateur")
             win.geometry("400x500")
             win.configure(bg="#f4f7f9")
@@ -451,21 +394,14 @@ class FindMyIPApp:
             ent_pwd = tk.Entry(container, show="*", font=("Segoe UI", 11))
             ent_pwd.pack(fill="x", pady=5)
 
-            #AMBZ 02
-            #Date : 29/10/2026
-            #During : 30minutes
             v = tk.StringVar()
             v.set(None) # initialiser
             tk.Label(container, text="Type d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w", pady=(5,15))
             tk.Radiobutton(container, text="Admin", variable=v, value="admin", bg="#f4f7f9").pack(side="left", padx=10, pady=5)
             tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5)
 
-
             id_number = Database.create_id_number()
 
-            #AMBZ 02
-            #Date : 10/10/2026
-            #During : 10secondes (car il vient de son ancien projet)
             def is_date(pwd):
                 try:
                     #Si aucune exception n'a ete attrape alors il s'agit d'une date.
@@ -474,18 +410,12 @@ class FindMyIPApp:
                 except ValueError:
                     return False
                 
-            #AMBZ 02
-            #Date : 10/10/2026
-            #During : 10secondes (car il vient de son ancien projet)
             def contains_space(pwd):
                 for i in range (len(pwd)):
                     if(pwd[i] == chr(32)):
                         return True
                 return False
 
-            #AMBZ 02
-            #Date : 10/10/2026
-            #During : 1h
             def contains_special_characters(pwd):
                 #Ajoute tous les caractères spéciaux dans une liste.
                 special_characters = {chr(i) for r in (range(33, 48), range(58, 65), range(91, 97)) for i in r}
@@ -506,9 +436,6 @@ class FindMyIPApp:
                 pwd = ent_pwd.get()
 
                 if user and pwd:
-                    #AMBZ 02
-                    #Date : 10/10/2026
-                    #During : 1h
                     #Vérification du mot de passe 
                     if (len(pwd))< 8:
                         messagebox.showerror("Erreur", "Le mot de passe n'est pas assez long.\n" \
@@ -526,8 +453,8 @@ class FindMyIPApp:
 
                     else:
                         #On teste l'enregistrement d'utilisateur
-                        if Database.save_user(id_number,user, v.get(), pwd):
-                            Database.save_user(id_number,user, v.get(), pwd)
+                        if Database.save_user(id_number, user, v.get(), pwd):
+                            Database.save_user(id_number, user, v.get(), pwd)
                             messagebox.showinfo("Succès", "Utilisateur enregistré !")
                             win.destroy()
                         else:
@@ -540,32 +467,28 @@ class FindMyIPApp:
                     relief="flat", cursor="hand2", height=2).pack(pady=20, padx=40, fill="x")
             tk.Label(win, text=f"Voici votre matricule, veuillez le mémoriser : {id_number}",
                 fg="#2980b9", bg="#f4f7f9", font=("Segoe UI", 10, "bold")).pack(fill="x", padx=40)
-            
 
-        #AMBZ 02
-        #Date : 28/10/2026
-        #During : 4h15
-        def open_delete_user():
+
+        def open_delete_user(users = None):
             if Database.nb_users() == 0:
                 messagebox.showerror("Erreur !", "Il n'y a aucun utilisateur à supprimer !")
                 return
 
-            win = tk.Toplevel(self.root)
+            if users is None:
+                users = Database.get_users()
+
+            clear_window()
             win.title("Supprimer un utilisateur")
-            win.geometry("500x500")
+            win.geometry("700x500")
             win.configure(bg="#f4f7f9")
-            win.resizable(False, False)
+            win.resizable(True, True)
             win.grid_columnconfigure(0, weight=1)
 
-            users = Database.get_users()
             MAX_VISIBLE = 6   # nombre de lignes visibles sans défiler
 
             # Style commun à toutes les cellules
             cell_style = dict(bg="#f4f7f9", fg="#2c3e50", font=("Segoe UI", 12, "bold"),
                             width=15, height=2, borderwidth=1, relief="solid")
-
-            # L'indice de l'utilisateur à supprimer (-1 = aucun)
-            user_to_delete = tk.IntVar(value=-1)
 
             def set_value(value):
                 user_to_delete.set(value)
@@ -582,15 +505,59 @@ class FindMyIPApp:
                 else:
                     messagebox.showerror("Erreur", "Échec de la suppression.")
 
-            # ---------- Conteneur du grid_usersau ----------
+            def research():                
+                if Database.research_user(search_entry.get()) == [] :
+                    messagebox.showerror("Erreur", "Utilisateur introuvable !")
+                    return
+                users = Database.research_user(search_entry.get())
+                open_delete_user(users) 
+
+            def to_filter(event):
+                if Database.filter(type_role.get()) == False:
+                    messagebox.showerror("Erreur", "Le filtre n'a pas pu s'effectuer.")
+                    return
+                if type_role.get() == 'Tous':
+                    users = Database.get_users()
+                else:
+                    users = Database.filter(type_role.get())
+                open_delete_user(users)
+
+            # L'indice de l'utilisateur à supprimer (-1 = aucun)
+            user_to_delete = tk.IntVar(value=-1)
+
+            # ---------- Conteneur du grid_users----------
             grid_users = tk.Frame(win, bg="#f4f7f9")
-            grid_users.grid(row=0, column=0, pady=(10, 0))
+            grid_users.grid(row=0, column=0)
+
+            # ---------- Recherche (label + input) au-dessus du tableau ----------
+            search_frame = tk.Frame(grid_users, bg="#f4f7f9")
+            search_frame.grid(row=0, column=0, padx=0, sticky="w", pady=(15))
+
+            tk.Label(search_frame, text="Recherchez un utilisateur :", font=("Segoe UI", 8, "bold"),
+                        bg="#f4f7f9", fg="#2c3e50").grid(row=0, column=0, padx=(0, 0))
+
+            search_var = tk.StringVar()
+            search_entry = tk.Entry(search_frame, textvariable=search_var, font=("Segoe UI", 8),
+                                    width=5, relief="solid", borderwidth=1)
+            search_entry.grid(row=0, column=1, ipady=3)
+            search_entry.focus_set()
+            tk.Button(search_frame, text="Rechercher", font=("Segoe UI", 8, "bold"), command=research).grid(row=0, column=2, padx=10)
+
+            # ---------- Filtrage des utilisateurs ----------
+            tk.Label(search_frame, text="Filtre des utilisateurs :", font=("Segoe UI", 8, "bold"),
+                bg="#f4f7f9", fg="#2c3e50").grid(row=0, column=3, padx=(80, 10))            
+
+            type_role = tk.StringVar()
+            filter = ttk.Combobox(search_frame, textvariable=type_role)
+            filter['values'] = ['Tous', 'admin', 'user']
+            filter.grid(row=0, column=4)
+            filter.bind('<<ComboboxSelected>>', to_filter)
 
             # Titres (fixes, ne défilent pas)
             header = tk.Frame(grid_users, bg="#f4f7f9")
-            header.grid(row=0, column=0, sticky="w")
+            header.grid(row=1, column=0, sticky="w")
             header_labels = []
-            for col, titre in enumerate(["Index", "Nom d'utilisateur", "Rôle"]):
+            for col, titre in enumerate(["Index", "Matricule", "Nom d'utilisateur", "Rôle"]):
                 lbl = tk.Label(header, text=titre, **cell_style)
                 lbl.grid(row=0, column=col)
                 header_labels.append(lbl)
@@ -599,8 +566,8 @@ class FindMyIPApp:
             canvas = tk.Canvas(grid_users, bg="#f4f7f9", highlightthickness=0)
             scrollbar = tk.Scrollbar(grid_users, orient="vertical", command=canvas.yview)
             canvas.configure(yscrollcommand=scrollbar.set)
-            canvas.grid(row=1, column=0, sticky="nsew")
-            scrollbar.grid(row=1, column=1, sticky="ns")
+            canvas.grid(row=2, column=0, sticky="nsew")
+            scrollbar.grid(row=2, column=1, sticky="ns")
 
             # Le Frame qui contient les lignes, placé DANS le canvas
             grid_users = tk.Frame(canvas, bg="#f4f7f9")
@@ -624,6 +591,8 @@ class FindMyIPApp:
                     row=row_user, column=1, sticky="nsew")
                 tk.Label(grid_users, text=users[row_user][1], **cell_style).grid(
                     row=row_user, column=2, sticky="nsew")
+                tk.Label(grid_users, text=users[row_user][2], **cell_style).grid(
+                                    row=row_user, column=3, sticky="nsew")
 
             # ---------- Dimensions ----------
             win.update_idletasks()
@@ -645,11 +614,11 @@ class FindMyIPApp:
 
             # ---------- Bas de la fenêtre ----------
             user_selected = tk.Label(win, text="", fg="blue", bg="#f4f7f9")
-            user_selected.grid(row=1, column=0, pady=15)
+            user_selected.grid(row=2, column=0, pady=15)
 
             tk.Button(win, text="SUPPRIMER", command=delete, bg="#cc2e2e", fg="white",
                     font=("Segoe UI", 12, "bold"), width=15, height=2).grid(
-                        row=2, column=0, padx=10, pady=10)
+                        row=3, column=0, padx=10, pady=5)
 
         frame = tk.Frame(win)
         frame.place(relx=0.5, rely=0.5, anchor="center")
@@ -701,9 +670,6 @@ class FindMyIPApp:
         label_cadre.pack(expand=True, fill="both", padx=10, pady=10)
         tk.Button(fenetre_info, text="Compris", command=fenetre_info.destroy).pack(pady=10)
 
-    #AMBZ 02
-    #Date : 13/10/2026
-    #During : 3h
     def close_connexion(self):
         win = tk.Toplevel(self.root)
         win.resizable(False, False)

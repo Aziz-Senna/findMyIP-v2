@@ -10,9 +10,6 @@ class Database:
     __current_idnumber = None
     __id_connexion = 0
 
-    #AMBZ 02
-    #Date : 06/10/2026
-    #During : 30minutes
     @staticmethod
     def get_db_connection():
         if (os.path.isfile("FINDMYIP.db") == False):
@@ -20,16 +17,11 @@ class Database:
         Database.__isLoggIn = True
         return sqlite3.connect("FINDMYIP.db")
 
-    #AMBZ 02
-    #Date : 06/10/2026
-    #During : 10minutes
     @staticmethod
     def create_db():
         conn = sqlite3.connect("FINDMYIP.db")
         cursor = conn.cursor()
 
-        #AMBZ 02
-        #Date : 29/10/2026
         #Update of the table
         create_user_table_query = """create table if not exists user_info(
             id_number varchar(5) not null,
@@ -54,8 +46,6 @@ class Database:
         cursor.execute("alter table connexion add column fk_id_number varchar(5) not null references user_info(id_number)")
         conn.commit()
 
-        #AMBZ 02
-        #Date : 01/11/2026
         #J'évite les alter table pour garder cette ordre précis. Sinon je devrais mettre les clés étrangères en dernier et c'est pas beau.
         create_used_table_query = """create table if not exists activities(
             modified_by varchar(5) not null references user_info(id_number),
@@ -69,8 +59,6 @@ class Database:
         cursor.execute(create_used_table_query)
         conn.commit()
 
-        #YAAL 01
-        #Date : 03/11/2026
         # Tâche 3 : table d'adressage validée par la prof.
         # On garde la "recette" de chaque découpe, pas la liste des sous-réseaux.
         create_addressing_table_query = """create table if not exists addressing_table(
@@ -84,8 +72,6 @@ class Database:
         cursor.execute(create_addressing_table_query)
         conn.commit()
         
-        #YAAL 01
-        #Date : 05/11/2026
         # Bouton de sécurité : garde les demandes de changement de mot de passe.
         # Une demande doit être confirmée par un 2e admin, différent du premier.
         create_security_request_query = """create table if not exists security_request(
@@ -100,15 +86,11 @@ class Database:
         cursor.close()
         conn.close()    
 
-    #AMBZ 02
-    #Date : 07/10/2026
     # Retourne le martricule de l'utilisateur
     @staticmethod
     def get_current_user():
         return Database.__current_idnumber
 
-    #AMBZ 02
-    #Date : 03/11/2026
     @staticmethod
     # Retourne le nom d'utilisateur
     def get_current_username():
@@ -127,9 +109,6 @@ class Database:
                 cursor.close()
                 conn.close() 
                 
-
-    #AMBZ 02
-    #Date : 07/10/2026
     def get_users():
         conn = Database.get_db_connection()
         cursor = conn.cursor()
@@ -137,8 +116,6 @@ class Database:
         cursor.execute(query, (Database.get_current_user(),))
         return cursor.fetchall()  
 
-    #AMBZ 02
-    #Date : 07/10/2026
     def nb_users():
         conn = Database.get_db_connection()
         cursor = conn.cursor()
@@ -147,13 +124,10 @@ class Database:
         nb_users = cursor.fetchone()
         return nb_users[0]
 
-    #AMBZ 02
-    #Date : 01/11/2026
+    
     def get_id_connexion():
         return Database.__id_connexion
 
-    #AMBZ 02
-    #Date : 03/11/2026
     #Créer un matricule pour le nouvelle utilisateur
     @staticmethod
     def create_id_number():
@@ -180,9 +154,6 @@ class Database:
                 conn.close()
 
 
-    #AMBZ 02
-    #Date : 07/10/2026
-    #During : 2h
     @staticmethod
     def save_user(id_number, username, role, password):
         try : 
@@ -203,9 +174,7 @@ class Database:
                 cursor.close()
                 conn.close()
 
-    #AMBZ 02
-    #Date : 28/10/2026
-    #During : 10minutes
+    
     @staticmethod
     def delete_user(user_to_delete):
         try:
@@ -224,9 +193,7 @@ class Database:
                 cursor.close()
                 conn.close() 
 
-    #AMBZ 02 
-    #Date : 07/10/2026
-    #During : 30minutes
+    
     @staticmethod
     def check_login(id_number , password):
         try :
@@ -259,9 +226,7 @@ class Database:
                 cursor.close()
                 conn.close()       
 
-    #AMBZ 02
-    #Date : 13/10/2026
-    #During : 10minutes
+    
     @staticmethod
     def check_logout():
         if(Database.__isLoggIn == False):
@@ -269,8 +234,7 @@ class Database:
         Database.__isLoggIn = False
         return True
 
-    #YAAL 01
-    #Date : 02/11/2026    
+      
     @staticmethod
     # Les entry sauvegardent ce que l'utilisateur entre, et non les résultats.
     def save_activity(entry1, entry2, entry3, entry4, name_feature):
@@ -305,8 +269,7 @@ class Database:
                 cursor.close()
                 conn.close()
 
-    #AMBZ 02
-    #Date : 01/11/2026
+    
     @staticmethod
     def save_connexion(type):
         try:
@@ -342,8 +305,7 @@ class Database:
             if 'conn' in locals():
                 cursor.close()
                 conn.close()
-    #YAAL 01
-    #Date : 03/11/2026
+    
     # Tâche 3 : écrit une ligne (la "recette" d'une découpe) dans la table d'adressage.
     # On ne stocke que ce qu'il faut pour regénérer la découpe, pas la liste des sous-réseaux.
     # Renvoie True si l'enregistrement a réussi, False sinon.
@@ -366,6 +328,40 @@ class Database:
             return False
         finally:
             # Dans tous les cas (réussite ou erreur), on ferme la connexion
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
+
+
+    @staticmethod
+    # Retourne la liste des utlilisateurs en fonction de leur role - soit admin, soit user.
+    def filter(type):
+        try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("select * from user_info where role like (?) and id_number not like (?)", (type, Database.get_current_user(),))
+            return cursor.fetchall()
+        except Exception as e:
+            print(f"erreur lors du filtrage: {e}")
+            return False
+        finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
+
+    @staticmethod
+    # Permet de rechercher le matricule de l'utilisateur dans la table user_info.
+    def research_user(id_number):
+        try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("select id_number, username, role from user_info where id_number like (?) and id_number not like (?)", 
+                (id_number, Database.get_current_user()))
+            return cursor.fetchall()
+        except Exception as e:
+            print(f"erreur lors de la recherche: {e}")
+            return False
+        finally:
             if 'conn' in locals():
                 cursor.close()
                 conn.close()

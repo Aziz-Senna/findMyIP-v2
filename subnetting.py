@@ -3,9 +3,6 @@ from network import NetworkCalculator
 
 class SubnetCalculator:
 
-    #YAAL 01
-    #Date : 
-    #During :
     # Calculs pour la découpe en sous-réseaux (sans librairie IP).
     # Méthodes statiques : on les appelle directement sur la classe,
     @staticmethod
@@ -15,9 +12,6 @@ class SubnetCalculator:
         octets = [int(o) for o in ip.split(".")]
         return octets[0] * 256**3 + octets[1] * 256**2 + octets[2] * 256 + octets[3]
 
-    #YAAL 01
-    #Date : 
-    #During :
     @staticmethod
     def entier_vers_ip(nombre):
         # Chemin inverse : on divise par 256 (//) puis on garde le reste (%)
@@ -27,9 +21,6 @@ class SubnetCalculator:
         octet4 = nombre % 256
         return f"{octet1}.{octet2}.{octet3}.{octet4}"
 
-    #YAAL 01
-    #Date : 
-    #During :
     @staticmethod
     def calculer_bits_empruntes(nb_sr):
         # Plus petit nombre de bits tel que 2^bits >= nombre de SR demandés
@@ -38,10 +29,6 @@ class SubnetCalculator:
             bits += 1
         return bits
 
-
-    #YAAL 01
-    #Date : 
-    #During :
     #sr
     @staticmethod
     def prefixe_vers_masque(prefixe):
@@ -49,9 +36,6 @@ class SubnetCalculator:
         masques = NetworkCalculator.generate_datas_masks()
         return masques[prefixe - 8]["decimal"]
 
-    #YAAL 01
-    #Date : 
-    #During :
     #les vérifications
     @staticmethod
     def decouper_sous_reseaux(ip,nb_sr):
