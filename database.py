@@ -59,8 +59,8 @@ class Database:
         cursor.execute(create_used_table_query)
         conn.commit()
 
-        # Tâche 3 : table d'adressage validée par la prof.
-        # On garde la "recette" de chaque découpe, pas la liste des sous-réseaux.
+        # table d'adressage.
+        # On garde la recette de chaque découpe, pas la liste des sous-réseaux.
         create_addressing_table_query = """create table if not exists addressing_table(
             id_addressing integer primary key autoincrement,
             modified_by varchar(5) not null references user_info(id_number),
@@ -81,6 +81,16 @@ class Database:
             confirmed_by varchar(5) references user_info(id_number),
             confirm_date datetime)"""
         cursor.execute(create_security_request_query)
+        conn.commit()
+
+        #garder le resultat du tableau des masques.
+        #le tableau est toujours le même, donc il n'est enregistré qu'une seule fois.
+        create_mask_table_query ="""create table if not exists mask_table(
+            prefix varchar(3) not null,
+            decimal_mask varchar(15) not null,
+            binary_mask varchar(35) not null,
+            primary key(prefix))"""
+        cursor.execute(create_mask_table_query)
         conn.commit()
         
         cursor.close()
@@ -360,6 +370,29 @@ class Database:
             return cursor.fetchall()
         except Exception as e:
             print(f"erreur lors de la recherche: {e}")
+            return False
+        finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
+
+    #enregister le tableau des masques, il sera tjrs la mm donc on l'écris juste si la table est encore vide.
+    @staticmethod
+    def save_masks(masks):
+        try :
+            conn =Database.get_db_connection()
+            cursor = conn.cursor()
+            
+            #cmb de masque il y a deja 
+            cursor.execute("select count(prefix) from mask_table") 
+            if cursor.fetchone()[0] == 0:
+                for m in masks:
+                    cursor.execute("insert into mask_table (prefix, decimal_mask, binary_mask) values (?, ?, ?)",
+                                   (m["prefixe"], m["decimal"], m["binaire"]))
+                    conn.commit()
+                return True
+        except Exception as e: 
+            print(f"erreur d'enregistrement des masques: {e}")
             return False
         finally:
             if 'conn' in locals():

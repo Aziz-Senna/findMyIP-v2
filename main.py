@@ -105,7 +105,27 @@ class FindMyIPApp:
 
     def setup_main_menu(self):
         tk.Label(self.root, text="FINDMYIP", font=("Segoe UI", 24, "bold"), 
-                 bg="#f4f7f9", fg="#2c3e50").pack(pady=30)
+                 bg="#f4f7f9", fg="#2c3e50").pack(pady=(30, 10))
+
+        # Ergonomie : carte qui montre avec quel compte on est connecté
+        user_card = tk.Frame(self.root, bg="#ffffff", highlightbackground="#dfe6e9",
+                             highlightthickness=1, padx=15, pady=8)
+        user_card.pack(pady=(0, 10))
+
+        # L'icône
+        tk.Label(user_card, text="👤", font=("Segoe UI", 20), bg="#ffffff").pack(side="left")
+
+        # Le nom (en gras) et le matricule (en gris)
+        tk.Label(user_card, text=Database.get_current_username(),
+                 font=("Segoe UI", 11, "bold"), bg="#ffffff", fg="#2c3e50").pack(side="left", padx=(8, 4))
+        tk.Label(user_card, text=f"·  {Database.get_current_user()}",
+                 font=("Segoe UI", 10), bg="#ffffff", fg="#7f8c8d").pack(side="left")
+
+        # Le badge du rôle : rouge pour admin, bleu pour user
+        couleur_role = "#e74c3c" if self.role == "admin" else "#3498db"
+        tk.Label(user_card, text=self.role.upper(), font=("Segoe UI", 9, "bold"),
+                 bg=couleur_role, fg="white", padx=8, pady=2).pack(side="left", padx=(15, 0))
+        
         
         # Grille pour les boutons
         container = tk.Frame(self.root, bg="#f4f7f9")
@@ -153,6 +173,12 @@ class FindMyIPApp:
         
         donnees = NetworkCalculator.generate_datas_masks()
         
+        #on garde le résultat
+        Database.save_masks(donnees)
+
+        #on garde aussi celui qui a ultisé la fonctionnalité eyt qaund
+        Database.save_activity(None, None, None, None, "Générateur de Masques")
+        
         # Affichage dans un grid_usersau (Treeview) pour que ce soit pro
         cols = ("prefixe", "decimal", "binaire")
         tree = ttk.Treeview(win, columns=cols, show="headings")
@@ -180,7 +206,7 @@ class FindMyIPApp:
             else:
                 #On récupère l'erreur.
                 lbl_res.config(text=f"{NetworkCalculator.check_ip(ip)}", fg="red")
-            Database.save_activity(ip, None, None, None, 2)
+            Database.save_activity(ip, None, None, None, "Validateur Format IP")
         tk.Button(win, text="Valider", command=validate).pack(pady=10)
 
     def open_analysor(self):
@@ -199,7 +225,7 @@ class FindMyIPApp:
                 lbl_res.config(text=msg, fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red")
-            Database.save_activity(ip, None, None, None, 3)
+            Database.save_activity(ip, None, None, None, "Analyseur de Propriétés")
             
         tk.Button(win, text="Analyser", command=analyse).pack(pady=10)
         
@@ -218,7 +244,7 @@ class FindMyIPApp:
                 lbl_res.config(text=f"Classe : {classe}\nMasque par défaut : {masque}", fg="blue")
             else:
                 lbl_res.config(text=f"{ip} n'est pas une adresse IP valide.", fg="red") 
-            Database.save_activity(ip, None, None, None, 4)
+            Database.save_activity(ip, None, None, None, "Masque de Classe")
         tk.Button(win, text="Obtenir Masque", command=get).pack(pady=10)
 
     def open_subnetting(self):
@@ -244,7 +270,7 @@ class FindMyIPApp:
                     lbl_res.config(text=txt, fg="blue")
             else:
                 err = messagebox.showerror("Erreur", NetworkCalculator.check_ip(ent_ip.get()))
-            Database.save_activity(ent_ip.get(), ent_m.get(), None, None, 5)
+            Database.save_activity(ent_ip.get(), ent_m.get(), None, None, "Réseau & Sous-Réseau")
         tk.Button(win, text="Calculer", command=calculate).pack()
 
     # Tâche 3 : fenêtre de découpe en sous-réseaux
@@ -270,7 +296,7 @@ class FindMyIPApp:
             # On envoie les 2 champs à la calculatrice de subnetting.py
             res, err = SubnetCalculator.decouper_sous_reseaux(ent_ip.get(), ent_nb.get())
             # Tâche 6 : on garde ce que l'utilisateur a tapé (fonctionnalité n°6)
-            Database.save_activity(ent_ip.get(), ent_nb.get(), None, None, 6)
+            Database.save_activity(ent_ip.get(), ent_nb.get(), None, None,"Découpe en Sous-Réseaux")
             if err:
                 # Problème : on affiche le message et on s'arrête là
                 messagebox.showerror("Erreur", err, parent=win)
@@ -334,7 +360,7 @@ class FindMyIPApp:
     def open_comm(self):
         win = tk.Toplevel(self.root)
         win.title("Test de Communication")
-        win.geometry("450x400")
+        win.geometry("450x550")
         
         tk.Label(win, text="Machine 1 IP / Masque").pack()
         e1_ip = tk.Entry(win); e1_ip.pack()
@@ -347,16 +373,56 @@ class FindMyIPApp:
         lbl_res = tk.Label(win, text="", pady=20, font=("Arial", 10, "bold"))
         lbl_res.pack()
 
+        def get_network(ip,masque):
+            r , e  = NetworkCalculator.compute_adress_network(ip,masque)
+            return r["sous_reseau"] if r else "?"
+
+
         def test():
-            res, err = NetworkCalculator.test_communication(e1_ip.get(), e1_m.get(), e2_ip.get(), e2_m.get())
+            ip1, m1 = e1_ip.get(), e1_m.get()
+            ip2, m2 = e2_ip.get(), e2_m.get()
+            res, err = NetworkCalculator.test_communication(ip1,m1,ip2,m2)
             if err: lbl_res.config(text=err, fg="red")
             else:
                 m1_voit_m2, m2_voit_m1 = res
-                status = "Communication Possible ✅" if (m1_voit_m2 and m2_voit_m1) else "Problème de Routage ⚠️"
-                color = "green" if (m1_voit_m2 and m2_voit_m1) else "orange"
-                lbl_res.config(text=f"M1 -> M2: {m1_voit_m2}\nM2 -> M1: {m2_voit_m1}\n\n{status}", fg=color)
-            Database.save_activity(e1_ip.get(), e1_m.get(), e2_ip.get(), e2_m.get(), 7)
 
+                # Les 4 réseaux : chaque machine fait le calcul avec SON masque
+                net_m1_by_m1 = get_network(ip1, m1)   
+                net_m2_by_m1 = get_network(ip2, m1)   
+                net_m2_by_m2 = get_network(ip2, m2)   
+                net_m1_by_m2 = get_network(ip1, m2)   
+
+                texte = (
+                    f"Vue de M1 (masque {m1}) :\n"
+                    f"   réseau de M1 : {net_m1_by_m1}\n"
+                    f"   réseau de M2 : {net_m2_by_m1}\n"
+                    f"   → M1 voit M2 : {'oui ✅' if m1_voit_m2 else 'non ❌'}\n\n"
+                    f"Vue de M2 (masque {m2}) :\n"
+                    f"   réseau de M2 : {net_m2_by_m2}\n"
+                    f"   réseau de M1 : {net_m1_by_m2}\n"
+                    f"   → M2 voit M1 : {'oui ✅' if m2_voit_m1 else 'non ❌'}"
+                )
+
+                #le résultat selon les 3 cas possibles
+                if m1_voit_m2 and m2_voit_m1:
+                    texte += "\n\n✅ Communication possible :\nles deux machines sont dans le même réseau."
+                    couleur = "green"
+                elif not m1_voit_m2 and not m2_voit_m1:
+                    texte += ("\n\n❌ Problème de routage : réseaux différents.\n"
+                              "Les deux machines ne sont pas dans le même réseau,\n"
+                              "il faut passer par un routeur.")
+                    couleur = "red"
+                else:
+                    texte += ("\n\n⚠ Problème de routage : masques différents.\n"
+                              "Une machine voit l'autre, mais pas l'inverse.\n"
+                              "Les deux machines doivent avoir le même masque.")
+                    couleur = "orange"
+
+                # On affiche tout, avec la couleur choisie
+                lbl_res.config(text=texte, fg=couleur, justify="left")
+
+            #on enregistre ce que l'utilisateur a tapé
+            Database.save_activity(ip1, m1, ip2, m2, "Vérificateur Connexion")
         tk.Button(win, text="Vérifier", command=test, bg="#2980b9", fg="white").pack(pady=10)
 
     def handle_users(self):
@@ -481,7 +547,7 @@ class FindMyIPApp:
             win.title("Supprimer un utilisateur")
             win.geometry("700x500")
             win.configure(bg="#f4f7f9")
-            win.resizable(True, True)
+            win.resizable(False, False)
             win.grid_columnconfigure(0, weight=1)
 
             MAX_VISIBLE = 6   # nombre de lignes visibles sans défiler
@@ -499,6 +565,13 @@ class FindMyIPApp:
                 if index == -1:
                     messagebox.showwarning("Attention", "Sélectionne un utilisateur.")
                     return
+                
+                # On vérifie qu'on a le droit de supprimer (règle des 2 admins minimum)
+                ok, message = SecurityManager.can_delete_user(users[index][0])
+                if not ok:
+                    messagebox.showerror("Suppression impossible", message, parent=win)
+                    return
+                
                 if Database.delete_user(index):
                     messagebox.showinfo("Succès !", "Utilisateur supprimé !")
                     win.destroy()
@@ -664,7 +737,7 @@ class FindMyIPApp:
             "   -> Entrer les informations de l'utilisateur\n"
             "   -> validate les informations\n"
         )
-        Database.save_activity(None, None, None, None, 8)
+        Database.save_activity(None, None, None, None, "Infos Application")
         label_cadre = tk.Label(fenetre_info, text=texte_complet, justify="left", 
                               font=("Courier New", 10), padx=20, pady=20, bg="white", relief="sunken")
         label_cadre.pack(expand=True, fill="both", padx=10, pady=10)

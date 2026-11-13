@@ -12,56 +12,54 @@ from database import Database
 
 
 class SecurityManager:
+    @staticmethod
+    def security_button():
+      try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            current = Database.get_current_user()
 
+            # Question 1 : il faut au moins 2 admins pour pouvoir confirmer
+            cursor.execute("select count(id_number) from user_info where role ='admin'")
+            if cursor.fetchone()[0] < 2:
+                return False, "Il faut au moins 2 administrateurs.\nCréez d'abord un second admin."
 
-  @staticmethod
-  def security_button():
-    try:
-      conn = Database.get_db_connection()
-      cursor = conn.cursor()
-      now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      current = Database.get_current_user()
+            # Question 2 : y a-t-il une demande en attente (pas encore confirmée) ?
+            cursor.execute("select id_request, requested_by from security_request where confirmed_by is null")
+            pending = cursor.fetchone()
 
-      # Question 1 : il faut au moins 2 admins pour pouvoir confirmer
-      cursor.execute("select count(id_number) from user_info where role ='admin'")
-      if cursor.fetchone()[0] < 2:
-        return False, "Il faut au moins 2 administrateurs.\nCréez d'abord un second admin."
+            # Question 3 : pas de demande -> c'est le 1er clic, on la crée
+            if pending is None:
+                cursor.execute("insert into security_request (requested_by, request_date) values (?, ?)",
+                            (current, now))
+                conn.commit()
+                return True,"Demande enregistrée.\nUn autre administrateur doit confirmer."
+            
+            # Question 4 : il y a une demande. Qui l'a lancée ?
+            id_request,requested_by = pending
+            if requested_by == current:
+                return False, "Vous avez déjà lancé cette demande.\nUn autre administrateur doit confirmer."
+            # Un AUTRE admin confirme : on valide la demande...
+            cursor.execute("update security_request set confirmed_by = ?, confirm_date = ? where id_request = ?",
+                                (current, now, id_request))
 
-      # Question 2 : y a-t-il une demande en attente (pas encore confirmée) ?
-      cursor.execute("select id_request, requested_by from security_request where confirmed_by is null")
-      pending = cursor.fetchone()
-
-      # Question 3 : pas de demande -> c'est le 1er clic, on la crée
-      if pending is None:
-        cursor.execute("insert into security_request (requested_by, request_date) values (?, ?)",
-                      (current, now))
-        conn.commit()
-        return True,"Demande enregistrée.\nUn autre administrateur doit confirmer."
-      
-      # Question 4 : il y a une demande. Qui l'a lancée ?
-      id_request,requested_by = pending
-      if requested_by == current:
-        return False, "Vous avez déjà lancé cette demande.\nUn autre administrateur doit confirmer."
-      # Un AUTRE admin confirme : on valide la demande...
-      cursor.execute("update security_request set confirmed_by = ?, confirm_date = ? where id_request = ?",
-                           (current, now, id_request))
-
-      # ...et on met pour tt les utlisateurs comme ca il doit changer leur mdp 
-      cursor.execute("update user_info set must_change_password = 1")
-      conn.commit()
-      return True, "Confirmé !\nTous les utilisateurs devront changer leur mot de passe à leur prochaine connexion."
-    except Exception as e:
-        print(f"erreur du bouton de sécurité: {e}")
-        return False, "Erreur lors de l'opération."
-    finally:
-        if 'conn' in locals():
-            cursor.close()
-            conn.close()
+            # ...et on met pour tt les utlisateurs comme ca il doit changer leur mdp 
+            cursor.execute("update user_info set must_change_password = 1")
+            conn.commit()
+            return True, "Confirmé !\nTous les utilisateurs devront changer leur mot de passe à leur prochaine connexion."
+      except Exception as e:
+            print(f"erreur du bouton de sécurité: {e}")
+            return False, "Erreur lors de l'opération."
+      finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
 
     # Regarde l'étiquette de l'utilisateur connecté.
     # Renvoie True s'il doit changer son mot de passe, False sinon.
-  @staticmethod
-  def must_change_password():
+    @staticmethod
+    def must_change_password():
         try:
             conn = Database.get_db_connection()
             cursor = conn.cursor()
@@ -81,8 +79,8 @@ class SecurityManager:
     # Enregistre le nouveau mot de passe de l'utilisateur connecté
     # et enlève l'étiquette (must_change_password repasse à 0).
     # Renvoie (True ou False, message à afficher).
-  @staticmethod
-  def change_password(new_password):
+    @staticmethod
+    def change_password(new_password):
         try:
             conn = Database.get_db_connection()
             cursor = conn.cursor()
@@ -112,3 +110,33 @@ class SecurityManager:
             if 'conn' in locals():
                 cursor.close()
                 conn.close()
+    #il faut tjrs au moins 2 admins pour pouvoir confirmer.           
+    @staticmethod
+    def can_delete_user(id_number):
+        try:
+            conn = Database.get_db_connection()
+            cursor = conn.cursor()
+
+            # c qui la perosnne a supprimer
+            cursor.execute("select role from user_info where id_number = ?", (id_number,))
+            role = cursor.fetchone()[0]
+            if role !="admin":
+                return True,""
+
+            #on compte il y a cmb d'admin
+            cursor.execute("select count(id_number) from user_info where role = 'admin'")
+            if cursor.fetchone()[0] <= 2:
+                return False, ("Impossible de supprimer cet administrateur :\n"
+                               "il doit toujours rester au moins 2 administrateurs\n"
+                               "pour pouvoir utiliser le bouton de sécurité.")
+            return True, ""
+        except Exception as e:
+            print(f"erreur de vérification de suppression: {e}")
+            return False, "Erreur lors de la vérification."
+        finally:
+            if 'conn' in locals():
+                cursor.close()
+                conn.close()
+
+
+
