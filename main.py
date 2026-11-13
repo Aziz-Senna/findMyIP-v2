@@ -1,5 +1,4 @@
 import tkinter as tk
-import random
 from tkinter import messagebox, ttk
 from database import Database
 from network import NetworkCalculator
@@ -55,14 +54,61 @@ class LoginWindow:
             self.btn_show.config(text="Afficher le mot de passe")
 
     def validate_connexion(self):
-        username = self.username_entry.get().strip()
+        id_number = self.username_entry.get().strip()
         password = self.password_entry.get()
+        role = Database.check_login(id_number , password)
 
-        if Database.check_login(username, password):
-            role = Database.check_login(username , password)
-            self.execute_dashbord(role)
+        if role:
+            # Bouton de sécurité : si l'étiquette vaut 1, on oblige à changer de mot de passe AVANT d'accéder au menu (ce n'est pas un blocage)
+            if SecurityManager.must_change_password(id_number):
+                self.open_change_password(role)
+            else:
+                self.execute_dashbord(role)
         else:
             messagebox.showerror("Erreur", "Identifiants incorrects")
+
+    # Fenêtre affichée après le bouton de sécurité : l'utilisateur doit choisir un nouveau mot de passe avant d'arriver au menu.
+    def open_change_password(self, role):
+        win = tk.Toplevel(self.root)
+        win.title("Nouveau mot de passe obligatoire")
+        win.geometry("400x350")
+        win.configure(bg="#f4f7f9")
+        win.resizable(False, False)
+        win.grab_set()   # on ne peut plus cliquer sur la fenêtre de connexion derrière
+
+        tk.Label(win, text="Par mesure de sécurité,\nvous devez changer votre mot de passe.",
+                 font=("Segoe UI", 11, "bold"), bg="#f4f7f9", fg="#2c3e50").pack(pady=20)
+
+        tk.Label(win, text="Nouveau mot de passe", bg="#f4f7f9").pack()
+        ent_new = tk.Entry(win, show="*", font=("Segoe UI", 11))
+        ent_new.pack(pady=5)
+
+        tk.Label(win, text="Confirmer le mot de passe", bg="#f4f7f9").pack()
+        ent_confirm = tk.Entry(win, show="*", font=("Segoe UI", 11))
+        ent_confirm.pack(pady=5)
+
+        def validate():
+            new_pwd = ent_new.get()
+            # Vérifications de base sur le nouveau mot de passe
+            if new_pwd != ent_confirm.get():
+                messagebox.showerror("Erreur", "Les deux mots de passe ne sont pas identiques.", parent=win)
+            elif len(new_pwd) < 8:
+                messagebox.showerror("Erreur", "Le mot de passe doit faire au moins 8 caractères.", parent=win)
+            elif " " in new_pwd or new_pwd.isdigit() or new_pwd.isalpha():
+                messagebox.showerror("Erreur",
+                    "Le mot de passe doit contenir des lettres et des chiffres, sans espace.", parent=win)
+            else:
+                # On enregistre le nouveau mot de passe.
+                success, message = SecurityManager.change_password(new_pwd)
+                if success:
+                    messagebox.showinfo("Succès", message, parent=win)
+                    win.destroy()
+                    self.execute_dashbord(role)
+                else:
+                    messagebox.showerror("Erreur", message, parent=win)
+
+        tk.Button(win, text="VALIDER", command=validate, bg="#2ecc71", fg="white",
+                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=20)
 
     def execute_dashbord(self, role):
         for widget in self.root.winfo_children():
@@ -84,8 +130,8 @@ class FindMyIPApp:
         
         Database.save_connexion("login")        
         self.setup_main_menu()
-    # Bouton de sécurité (admins seulement) : demande ou confirmation
-    # du changement de mot de passe obligatoire pour tous les utilisateurs.
+
+    # Bouton de sécurité (admins seulement) : demande ou confirmation du changement de mot de passe obligatoire pour tous les utilisateurs.
     def open_security_button(self):
         # On demande d'abord confirmation : c'est une action importante
         ok = messagebox.askyesno("Sécurité",
@@ -95,13 +141,12 @@ class FindMyIPApp:
             "Voulez-vous continuer ?")
         if not ok:
             return
-        # on demande a security.py de tainter le clic
+        
         success , message = SecurityManager.security_button()
         if success:
-            messagebox.showinfo("Sécuité",message)
+            messagebox.showinfo("Sécurité",message)
         else:
-            messagebox.showerror("Sécuité",message)
-
+            messagebox.showerror("Sécurité",message)
 
     def setup_main_menu(self):
         tk.Label(self.root, text="FINDMYIP", font=("Segoe UI", 24, "bold"), 
@@ -158,7 +203,6 @@ class FindMyIPApp:
             btn.bind("<Leave>", lambda e, b=btn: b.config(bg="#ffffff"))
 
     # --- ACTIONS ---
-
     #Enregistrer la date et heure déconnexion et fermer le programme.
     def close_programm(self):        
             Database.save_connexion("logout")
@@ -169,36 +213,31 @@ class FindMyIPApp:
     def open_generator(self):
         win = tk.Toplevel(self.root)
         win.title("Tableau des masques")
-        win.geometry("900x600")
-        
-        donnees = NetworkCalculator.generate_datas_masks()
-        
-        #on garde le résultat
-        Database.save_masks(donnees)
-
-        #on garde aussi celui qui a ultisé la fonctionnalité eyt qaund
+        win.geometry("900x600")        
+        datas = NetworkCalculator.generate_datas_masks()
+        Database.save_masks(datas)
         Database.save_activity(None, None, None, None, "Générateur de Masques")
         
-        # Affichage dans un grid_usersau (Treeview) pour que ce soit pro
+        # Affichage dans un grid_users (Treeview)
         cols = ("prefixe", "decimal", "binaire")
         tree = ttk.Treeview(win, columns=cols, show="headings")
         tree.heading("prefixe", text="CIDR")
         tree.heading("decimal", text="Masque Décimal")
-        tree.heading("binaire", text="Masque Binaire")
-        
-        for d in donnees:
-            tree.insert("", "end", values=(d["prefixe"], d["decimal"], d["binaire"]))
-        
+        tree.heading("binaire", text="Masque Binaire")        
+        for data in datas:
+            tree.insert("", "end", values=(data["prefixe"], data["decimal"], data["binaire"]))        
         tree.pack(expand=True, fill="both", padx=10, pady=10)
 
     def open_validator(self):
         win = tk.Toplevel(self.root)
         win.title("Validateur de Format IP")
         win.geometry("400x200")
+
         tk.Label(win, text="Entrez une adresse IP :").pack(pady=10)
         ent_ip = tk.Entry(win); ent_ip.pack()
         lbl_res = tk.Label(win, text="", pady=20)
         lbl_res.pack()
+
         def validate():
             ip = ent_ip.get()
             if NetworkCalculator.check_ip(ip) == "True":
@@ -261,85 +300,79 @@ class FindMyIPApp:
         lbl_res.pack()
 
         def calculate():
-            #Si le format de l'adresse IP est correct
+            # Si le format de l'adresse IP est correct
             if NetworkCalculator.check_ip(ent_ip.get()) == "True":
                 res, err = NetworkCalculator.compute_adress_network(ent_ip.get(), ent_m.get())
                 if err: messagebox.showerror("Erreur", err)
                 else:
-                    txt = f"Réseau Classfull : {res['reseau_classfull']}\nSous-Réseau : {res['sous_reseau']}"
+                    txt = f"Réseau Classfull : {res['network_classfull']}\nSous-Réseau : {res['under_network']}"
                     lbl_res.config(text=txt, fg="blue")
+
+            # Sinon la méthode retourne le type d'erreur.
             else:
                 err = messagebox.showerror("Erreur", NetworkCalculator.check_ip(ent_ip.get()))
             Database.save_activity(ent_ip.get(), ent_m.get(), None, None, "Réseau & Sous-Réseau")
         tk.Button(win, text="Calculer", command=calculate).pack()
 
-    # Tâche 3 : fenêtre de découpe en sous-réseaux
     def open_decoupe(self):
-        # Nouvelle fenêtre par-dessus le menu principal
-        # 850 de large pour les 5 colonnes, 600 de haut pour le résumé + le tableau
         win = tk.Toplevel(self.root)
         win.title("Découpe en Sous-Réseaux")
         win.geometry("850x600")
 
-        # Champ 1 : l'adresse IP
         tk.Label(win, text="Adresse IP :").pack(pady=5)
         ent_ip = tk.Entry(win)
         ent_ip.pack()
 
-        # Champ 2 : le nombre de sous-réseaux
         tk.Label(win, text="Nombre de sous-réseaux :").pack(pady=5)
         ent_nb = tk.Entry(win)
         ent_nb.pack()
 
-        # Ce qui se passe quand on clique sur "Découper"
-        def decouper():
-            # On envoie les 2 champs à la calculatrice de subnetting.py
-            res, err = SubnetCalculator.decouper_sous_reseaux(ent_ip.get(), ent_nb.get())
-            # Tâche 6 : on garde ce que l'utilisateur a tapé (fonctionnalité n°6)
+        # On teste le découpage en sous-réseaux.
+        def slice():
+
+            res, err = SubnetCalculator.slice_under_network(ent_ip.get(), ent_nb.get())
             Database.save_activity(ent_ip.get(), ent_nb.get(), None, None,"Découpe en Sous-Réseaux")
             if err:
                 # Problème : on affiche le message et on s'arrête là
                 messagebox.showerror("Erreur", err, parent=win)
                 return
 
-            # Tout va bien : on écrit le résumé dans le label
-            texte = (
+            text_label = (
                 f"Classe : {res['classe']}\n"
-                f"Réseau de départ : {res['reseau']}\n"
-                f"Masque de classe : {res['masque_classe']}\n"
-                f"Bits empruntés : {res['bits_empruntes']}\n"
-                f"Nouveau masque : {res['nouveau_masque']} (/{res['nouveau_prefixe']})\n"
-                f"SR demandés : {res['nb_sr_demandes']}\n"
+                f"Réseau de départ : {res['network']}\n"
+                f"Masque de classe : {res['class_mask']}\n"
+                f"Bits empruntés : {res['bits_boworred']}\n"
+                f"Nouveau masque : {res['new_mask']} (/{res['new_prefix']})\n"
+                f"SR demandés : {res['nb_sr_asked']}\n"
                 f"SR créés : {res['nb_sr_reels']}\n"
                 f"Machines par SR : {res['max_machines']}"
             )
+
             # Si la liste a été coupée (trop de SR), on le signale
-            if res["nb_sr_affiches"] < res["nb_sr_reels"]:
-                texte += f"\n⚠ Affichage limité aux {res['nb_sr_affiches']} premiers SR"
-            lbl_resume.config(text=texte)
+            if res["nb_sr_showed"] < res["nb_sr_reels"]:
+                texte += f"\n⚠ Affichage limité aux {res['nb_sr_showed']} premiers SR"
+            lbl_resume.config(text=text_label)
 
             # On vide le tableau, au cas où une découpe était déjà affichée
             for ligne in tree.get_children():
                 tree.delete(ligne)
-            # On ajoute une ligne par sous-réseau
-            for sr in res["sous_reseaux"]:
-                tree.insert("", "end", values=(sr["numero"], sr["reseau"],
-                                               sr["premiere"], sr["derniere"], sr["broadcast"]))
 
-            # Tâche 3 : on enregistre la "recette" de la découpe dans addressing_table
-            if not Database.save_subnetting(res["reseau"], res["nouveau_masque"],
-                                            res["nb_sr_demandes"], res["max_machines"]):
+            # On ajoute une ligne par sous-réseau
+            for sr in res["under_network"]:
+                tree.insert("", "end", values=(sr["number"], sr["network"],
+                                               sr["first"], sr["last"], sr["broadcast"]))
+
+            if not Database.save_subnetting(res["network"], res["new_mask"],
+                                            res["nb_sr_asked"], res["max_machines"]):
                 messagebox.showerror("Erreur", "La découpe n'a pas pu être enregistrée.", parent=win)
 
-        # Le bouton qui lance la découpe
-        tk.Button(win, text="Découper", command=decouper,
+        tk.Button(win, text="Découper", command=slice,
                   bg="#2980b9", fg="white").pack(pady=10)
 
-        # Zone où le résumé s'affichera (vide au départ)
         lbl_resume = tk.Label(win, text="", fg="blue", justify="left")
         lbl_resume.pack(pady=5)
 
-        # Tableau des sous-réseaux (vide au départ, rempli par decouper())
+        # Tableau des sous-réseaux (vide au départ, rempli par slice())
         cols = ("numero", "reseau", "premiere", "derniere", "broadcast")
         tree = ttk.Treeview(win, columns=cols, show="headings")
         tree.heading("numero", text="SR")
@@ -375,16 +408,16 @@ class FindMyIPApp:
 
         def get_network(ip,masque):
             r , e  = NetworkCalculator.compute_adress_network(ip,masque)
-            return r["sous_reseau"] if r else "?"
+            return r["under_network"] if r else "?"
 
-
+        # L'action de vérification entre deux réseaux et leurs masques.
         def test():
             ip1, m1 = e1_ip.get(), e1_m.get()
             ip2, m2 = e2_ip.get(), e2_m.get()
             res, err = NetworkCalculator.test_communication(ip1,m1,ip2,m2)
             if err: lbl_res.config(text=err, fg="red")
             else:
-                m1_voit_m2, m2_voit_m1 = res
+                m1_see_m2, m2_see_m1 = res
 
                 # Les 4 réseaux : chaque machine fait le calcul avec SON masque
                 net_m1_by_m1 = get_network(ip1, m1)   
@@ -392,49 +425,52 @@ class FindMyIPApp:
                 net_m2_by_m2 = get_network(ip2, m2)   
                 net_m1_by_m2 = get_network(ip1, m2)   
 
-                texte = (
+                text_complete = (
                     f"Vue de M1 (masque {m1}) :\n"
                     f"   réseau de M1 : {net_m1_by_m1}\n"
                     f"   réseau de M2 : {net_m2_by_m1}\n"
-                    f"   → M1 voit M2 : {'oui ✅' if m1_voit_m2 else 'non ❌'}\n\n"
+                    f"   → M1 voit M2 : {'oui ✅' if m1_see_m2 else 'non ❌'}\n\n"
                     f"Vue de M2 (masque {m2}) :\n"
                     f"   réseau de M2 : {net_m2_by_m2}\n"
                     f"   réseau de M1 : {net_m1_by_m2}\n"
-                    f"   → M2 voit M1 : {'oui ✅' if m2_voit_m1 else 'non ❌'}"
+                    f"   → M2 voit M1 : {'oui ✅' if m2_see_m1 else 'non ❌'}"
                 )
 
-                #le résultat selon les 3 cas possibles
-                if m1_voit_m2 and m2_voit_m1:
-                    texte += "\n\n✅ Communication possible :\nles deux machines sont dans le même réseau."
-                    couleur = "green"
-                elif not m1_voit_m2 and not m2_voit_m1:
-                    texte += ("\n\n❌ Problème de routage : réseaux différents.\n"
+                # Le résultat selon les 3 cas possibles
+                if m1_see_m2 and m2_see_m1:
+                    text_complete += "\n\n✅ Communication possible :\nles deux machines sont dans le même réseau."
+                    color = "green"
+                elif not m1_see_m2 and not m2_see_m1:
+                    text_complete += ("\n\n❌ Problème de routage : réseaux différents.\n"
                               "Les deux machines ne sont pas dans le même réseau,\n"
                               "il faut passer par un routeur.")
-                    couleur = "red"
+                    color = "red"
                 else:
-                    texte += ("\n\n⚠ Problème de routage : masques différents.\n"
+                    text_complete += ("\n\n⚠ Problème de routage : masques différents.\n"
                               "Une machine voit l'autre, mais pas l'inverse.\n"
                               "Les deux machines doivent avoir le même masque.")
-                    couleur = "orange"
+                    color = "orange"
 
                 # On affiche tout, avec la couleur choisie
-                lbl_res.config(text=texte, fg=couleur, justify="left")
+                lbl_res.config(text=text_complete, fg=color, justify="left")
 
-            #on enregistre ce que l'utilisateur a tapé
+            # On enregistre ce que l'utilisateur a tapé
             Database.save_activity(ip1, m1, ip2, m2, "Vérificateur Connexion")
         tk.Button(win, text="Vérifier", command=test, bg="#2980b9", fg="white").pack(pady=10)
 
+    # Gère la gestion des utilisateurs (ajout et suppression).
     def handle_users(self):
         win = tk.Toplevel(self.root)
         win.resizable(False, False)
         win.title("Gestion des utilisateurs")
         win.geometry("500x300")
 
+        # Efface tous les objets de la fenêtre pour éviter d'en créer une nouvelle pour ainsi redémarrer sur une page blanche.
         def clear_window():
             for widget in win.winfo_children():
                 widget.destroy()
 
+        # Gère l'ajout avec toutes les informations essentielles à demander.
         def open_add_user():
             if Database.nb_users() == pow(9,4):
                 messagebox.showerror("Erreur", "Impossible d'ajouter un nouvel utilisateur, la capacité maximale (6561) est atteinte.")
@@ -461,7 +497,7 @@ class FindMyIPApp:
             ent_pwd.pack(fill="x", pady=5)
 
             v = tk.StringVar()
-            v.set(None) # initialiser
+            v.set(None) # initialiser la valeur par défaut du radio bouton et la transforme en String.
             tk.Label(container, text="Type d'utilisateur", bg="#f4f7f9", font=("Segoe UI", 10)).pack(anchor="w", pady=(5,15))
             tk.Radiobutton(container, text="Admin", variable=v, value="admin", bg="#f4f7f9").pack(side="left", padx=10, pady=5)
             tk.Radiobutton(container, text="User", variable=v, value="user", bg="#f4f7f9").pack(side="left", pady=5)
@@ -496,7 +532,8 @@ class FindMyIPApp:
                         if(pwd[i] == special_characters[j]):
                             respect_conditions_caracters = True
                 return respect_conditions_caracters
-            
+
+            # Sauvegarde l'utiliasateur dans la base de données.
             def save():
                 user = ent_user.get().strip()
                 pwd = ent_pwd.get()
@@ -534,7 +571,7 @@ class FindMyIPApp:
             tk.Label(win, text=f"Voici votre matricule, veuillez le mémoriser : {id_number}",
                 fg="#2980b9", bg="#f4f7f9", font=("Segoe UI", 10, "bold")).pack(fill="x", padx=40)
 
-
+        # Gère la suppression avec toutes les informations essentielles à afficher sauf le mot de passe !!!!!!!!!!!!! (même s'il est haché comme un steak)
         def open_delete_user(users = None):
             if Database.nb_users() == 0:
                 messagebox.showerror("Erreur !", "Il n'y a aucun utilisateur à supprimer !")
@@ -550,16 +587,20 @@ class FindMyIPApp:
             win.resizable(False, False)
             win.grid_columnconfigure(0, weight=1)
 
-            MAX_VISIBLE = 6   # nombre de lignes visibles sans défiler
+            # Nombre de lignes visibles sans défiler dans le tableau.
+            # S'il y a plus de MAX_VISIBLE users, alors il y aura une side bar.
+            MAX_VISIBLE = 6
 
             # Style commun à toutes les cellules
             cell_style = dict(bg="#f4f7f9", fg="#2c3e50", font=("Segoe UI", 12, "bold"),
                             width=15, height=2, borderwidth=1, relief="solid")
 
+            # Définir la valeur de la cellule par le matricule de l'utilisateur.
             def set_value(value):
                 user_to_delete.set(value)
                 user_selected.config(text=f"Vous avez sélectionné : {users[value][0]}")
 
+            # L'action de supprimer un utilisateur dans la base de données.
             def delete():
                 index = user_to_delete.get()
                 if index == -1:
@@ -578,6 +619,7 @@ class FindMyIPApp:
                 else:
                     messagebox.showerror("Erreur", "Échec de la suppression.")
 
+            # L'action de rechercher un utilisateur via son matricule.
             def research():                
                 if Database.research_user(search_entry.get()) == [] :
                     messagebox.showerror("Erreur", "Utilisateur introuvable !")
@@ -585,6 +627,7 @@ class FindMyIPApp:
                 users = Database.research_user(search_entry.get())
                 open_delete_user(users) 
 
+            # L'action de filtrer la liste d'utilisateur en fonction du rôle (tous-admin-user).
             def to_filter(event):
                 if Database.filter(type_role.get()) == False:
                     messagebox.showerror("Erreur", "Le filtre n'a pas pu s'effectuer.")
@@ -707,11 +750,11 @@ class FindMyIPApp:
         
 
     def open_informations(self):
-        fenetre_info = tk.Toplevel(self.root)
-        fenetre_info.title("Spécifications Techniques")
-        fenetre_info.geometry("700x700")
+        window_info = tk.Toplevel(self.root)
+        window_info.title("Spécifications Techniques")
+        window_info.geometry("700x700")
         
-        texte_complet = (
+        text_complete = (
             "Les infos sur l'application\n"
             "" + "="*60 + "\n\n"
             "1. grid_usersAU DES MASQUES :\n"
@@ -738,10 +781,10 @@ class FindMyIPApp:
             "   -> validate les informations\n"
         )
         Database.save_activity(None, None, None, None, "Infos Application")
-        label_cadre = tk.Label(fenetre_info, text=texte_complet, justify="left", 
+        label_cadre = tk.Label(window_info, text=text_complete, justify="left", 
                               font=("Courier New", 10), padx=20, pady=20, bg="white", relief="sunken")
         label_cadre.pack(expand=True, fill="both", padx=10, pady=10)
-        tk.Button(fenetre_info, text="Compris", command=fenetre_info.destroy).pack(pady=10)
+        tk.Button(window_info, text="Compris", command=window_info.destroy).pack(pady=10)
 
     def close_connexion(self):
         win = tk.Toplevel(self.root)

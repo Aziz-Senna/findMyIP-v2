@@ -17,12 +17,11 @@ class Database:
         Database.__isLoggIn = True
         return sqlite3.connect("FINDMYIP.db")
 
+    # Créer la bas de données ainsi que toutes les tables utiles.
     @staticmethod
     def create_db():
         conn = sqlite3.connect("FINDMYIP.db")
         cursor = conn.cursor()
-
-        #Update of the table
         create_user_table_query = """create table if not exists user_info(
             id_number varchar(5) not null,
             username varchar(20) not null, 
@@ -31,6 +30,8 @@ class Database:
             must_change_password integer not null default 0,
             primary key(id_number))"""
         cursor.execute(create_user_table_query)
+        conn.commit()
+
         cursor.execute("insert into user_info (id_number, username, password_user, role) values (?, ?, ?, ?)", 
             ('00.00', 'firstadmin', '$2b$12$9bKppilobc0wqkG9VnjZ3uHjOqbRNT8C8TCeckF/OodN49peqRl.W', 'admin'))
         conn.commit()
@@ -46,7 +47,7 @@ class Database:
         cursor.execute("alter table connexion add column fk_id_number varchar(5) not null references user_info(id_number)")
         conn.commit()
 
-        #J'évite les alter table pour garder cette ordre précis. Sinon je devrais mettre les clés étrangères en dernier et c'est pas beau.
+        # Eviter les alter table pour garder cette ordre précis. Sinon on devrait mettre les clés étrangères en dernier et c'est pas beau.
         create_used_table_query = """create table if not exists activities(
             modified_by varchar(5) not null references user_info(id_number),
             name_feature varchar(30) not null,
@@ -59,7 +60,7 @@ class Database:
         cursor.execute(create_used_table_query)
         conn.commit()
 
-        # table d'adressage.
+        # Table d'adressage.
         # On garde la recette de chaque découpe, pas la liste des sous-réseaux.
         create_addressing_table_query = """create table if not exists addressing_table(
             id_addressing integer primary key autoincrement,
@@ -83,8 +84,8 @@ class Database:
         cursor.execute(create_security_request_query)
         conn.commit()
 
-        #garder le resultat du tableau des masques.
-        #le tableau est toujours le même, donc il n'est enregistré qu'une seule fois.
+        # Garder le resultat du tableau des masques.
+        # Le tableau est toujours le même, donc il n'est enregistré qu'une seule fois.
         create_mask_table_query ="""create table if not exists mask_table(
             prefix varchar(3) not null,
             decimal_mask varchar(15) not null,
@@ -96,13 +97,13 @@ class Database:
         cursor.close()
         conn.close()    
 
-    # Retourne le martricule de l'utilisateur
+    # Retourne le matricule de l'utilisateur
     @staticmethod
     def get_current_user():
         return Database.__current_idnumber
 
     @staticmethod
-    # Retourne le nom d'utilisateur
+    # Retourne le nom d'utilisateur pour savoir qui est connecté dans le dashboard.
     def get_current_username():
         try : 
             conn = Database.get_db_connection()
@@ -118,7 +119,8 @@ class Database:
                 #Il fallait inverser l'ordre de fermeture entre conn et cursor.
                 cursor.close()
                 conn.close() 
-                
+
+    # Retourne tous les utilisateurs de la table.          
     def get_users():
         conn = Database.get_db_connection()
         cursor = conn.cursor()
@@ -126,6 +128,7 @@ class Database:
         cursor.execute(query, (Database.get_current_user(),))
         return cursor.fetchall()  
 
+    # Retourne le nombre d'utilisateurs inscrits.
     def nb_users():
         conn = Database.get_db_connection()
         cursor = conn.cursor()
@@ -134,11 +137,11 @@ class Database:
         nb_users = cursor.fetchone()
         return nb_users[0]
 
-    
+    # Retourne l'identifiant unique de connexion actuel.
     def get_id_connexion():
         return Database.__id_connexion
 
-    #Créer un matricule pour le nouvelle utilisateur
+    # Créer un matricule pour le nouvelle utilisateur
     @staticmethod
     def create_id_number():
         id_number = random.randrange(pow(9, 5) + 1) #00.00 est reservé pour le firstadmin
@@ -148,10 +151,14 @@ class Database:
         try: 
             conn = Database.get_db_connection()
             cursor = conn.cursor()
+
+            # Compte le nombre de fois que le matricule est dans la table.
             check_id_number_exists_query = "select count(id_number) from user_info where id_number = (?)"
             cursor.execute(check_id_number_exists_query, (id_number,))
+
+            # Si déjà présent, on en recréer un autre.
             while cursor.fetchone()[0] != 0:
-                id_number = random.randrange(pow(9, 5) + 1) #00.00 est reservé pour le firstadmin
+                id_number = random.randrange(pow(9, 5) + 1)
                 id_number = str(id_number)
                 id_number = id_number[:2] + "." + id_number[-2:]
             return id_number
@@ -168,8 +175,7 @@ class Database:
     def save_user(id_number, username, role, password):
         try : 
             conn = Database.get_db_connection()
-            cursor = conn.cursor()
-            
+            cursor = conn.cursor()            
             salt = bcrypt.gensalt()
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
             cursor.execute("insert into user_info (id_number, username, password_user, role) values (?,?,?,?)", (id_number, username, hashed_password, role))
@@ -210,7 +216,7 @@ class Database:
             conn = Database.get_db_connection()
             cursor = conn.cursor()
 
-            #J'ai juste changé le %s à la fin de la requête query par ?
+            # Inverser le %s à la fin de la requête query par ?
             query = "select password_user, role from user_info where id_number = (?)"           
             cursor.execute(query, (id_number,))
 
@@ -349,7 +355,7 @@ class Database:
         try:
             conn = Database.get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("select * from user_info where role like (?) and id_number not like (?)", (type, Database.get_current_user(),))
+            cursor.execute("select id_number, username, role from user_info where role like (?) and id_number not like (?)", (type, Database.get_current_user(),))
             return cursor.fetchall()
         except Exception as e:
             print(f"erreur lors du filtrage: {e}")
@@ -376,14 +382,14 @@ class Database:
                 cursor.close()
                 conn.close()
 
-    #enregister le tableau des masques, il sera tjrs la mm donc on l'écris juste si la table est encore vide.
+    # Enregister le tableau des masques, il sera tjrs la mm donc on l'écris juste si la table est encore vide.
     @staticmethod
     def save_masks(masks):
         try :
             conn =Database.get_db_connection()
             cursor = conn.cursor()
             
-            #cmb de masque il y a deja 
+            # Compter le nombre de masque présent depuis la table.
             cursor.execute("select count(prefix) from mask_table") 
             if cursor.fetchone()[0] == 0:
                 for m in masks:

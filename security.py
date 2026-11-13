@@ -2,16 +2,13 @@
 # ca force tt les ultisateurs a changer leur mdp
 # les utlisateurs peuvent tjrs se connecter mais avant il doit changer le mdp
 
-
-from datetime import datetime
-from locale import currency
-
 import bcrypt
-
+from datetime import datetime
 from database import Database
 
 
 class SecurityManager:
+    
     @staticmethod
     def security_button():
       try:
@@ -59,15 +56,13 @@ class SecurityManager:
     # Regarde l'étiquette de l'utilisateur connecté.
     # Renvoie True s'il doit changer son mot de passe, False sinon.
     @staticmethod
-    def must_change_password():
+    def must_change_password(id_number):
         try:
             conn = Database.get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("select must_change_password from user_info where id_number = ?",
-                           (Database.get_current_user(),))
-            result = cursor.fetchone()
-            # result vaut par exemple (1,) : on regarde la première case
-            return result is not None and result[0] == 1
+            cursor.execute("select must_change_password from user_info where id_number = ?",(id_number,))
+            # Vaut par exemple (1,)
+            return cursor.fetchone()[0]
         except Exception as e:
             print(f"erreur de vérification du mot de passe: {e}")
             return False
@@ -76,8 +71,7 @@ class SecurityManager:
                 cursor.close()
                 conn.close()
 
-    # Enregistre le nouveau mot de passe de l'utilisateur connecté
-    # et enlève l'étiquette (must_change_password repasse à 0).
+    # Enregistre le nouveau mot de passe de l'utilisateur connecté et enlève l'étiquette (must_change_password repasse à 0).
     # Renvoie (True ou False, message à afficher).
     @staticmethod
     def change_password(new_password):

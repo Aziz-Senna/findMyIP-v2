@@ -1,29 +1,28 @@
-from network import NetworkCalculator 
-
+from network import NetworkCalculator
 
 class SubnetCalculator:
 
     # Calculs pour la découpe en sous-réseaux (sans librairie IP).
     # Méthodes statiques : on les appelle directement sur la classe,
     @staticmethod
-    def ip_vers_entier(ip):
-        # Transforme une IP en un seul grand nombre.
+    def ip_into_natural(ip):
+        # Transforme une IP en un seul grand number.
         # "172.16.0.0" -> [172, 16, 0, 0] -> 172×256³ + 16×256² + 0×256 + 0
-        octets = [int(o) for o in ip.split(".")]
-        return octets[0] * 256**3 + octets[1] * 256**2 + octets[2] * 256 + octets[3]
+        bytes = [int(o) for o in ip.split(".")]
+        return bytes[0] * 256**3 + bytes[1] * 256**2 + bytes[2] * 256 + bytes[3]
 
     @staticmethod
-    def entier_vers_ip(nombre):
+    def natural_into_ip(number):
         # Chemin inverse : on divise par 256 (//) puis on garde le reste (%)
-        octet1 = (nombre // 256**3) % 256
-        octet2 = (nombre // 256**2) % 256
-        octet3 = (nombre // 256) % 256
-        octet4 = nombre % 256
-        return f"{octet1}.{octet2}.{octet3}.{octet4}"
+        byte1 = (number // 256**3) % 256
+        byte2 = (number // 256**2) % 256
+        byte3 = (number // 256) % 256
+        byte4 = number % 256
+        return f"{byte1}.{byte2}.{byte3}.{byte4}"
 
     @staticmethod
-    def calculer_bits_empruntes(nb_sr):
-        # Plus petit nombre de bits tel que 2^bits >= nombre de SR demandés
+    def calculate_bits_boworred(nb_sr):
+        # Plus petit number de bits tel que 2^bits >= number de SR demandés
         bits = 0
         while 2 ** bits < nb_sr:
             bits += 1
@@ -31,87 +30,86 @@ class SubnetCalculator:
 
     #sr
     @staticmethod
-    def prefixe_vers_masque(prefixe):
-        #(fonction d'Amine ben hadou)
-        masques = NetworkCalculator.generate_datas_masks()
-        return masques[prefixe - 8]["decimal"]
+    def prefix_into_mask(prefix):
+        masks = NetworkCalculator.generate_datas_masks()
+        return masks[prefix - 8]["decimal"]
 
     #les vérifications
     @staticmethod
-    def decouper_sous_reseaux(ip,nb_sr):
+    def slice_under_network(ip,nb_sr):
         ip = ip.strip()
         
         # Contrôle 1 : l'IP doit être valide (check_ip de network.py)
         # check_ip renvoie le texte "True" si l'IP est bonne, sinon le message d'erreur
-        verification = NetworkCalculator.check_ip(ip)
-        if verification != "True":
-            return None, verification
+        check = NetworkCalculator.check_ip(ip)
+        if check != "True":
+            return None, check
         
-        # Contrôle 2: Le nombre de SR doit être un entier d'au moins 2
+        # Contrôle 2: Le number de SR doit être un entier d'au moins 2
         try:
             nb_sr = int(nb_sr)
         except ValueError:
-            return None, "Le nombre de SR doit être un nombre entier."
+            return None, "Le number de SR doit être un number entier."
         if nb_sr < 2:
-            return None, "Le nombre de SR doit être au moins 2."
+            return None, "Le number de SR doit être au moins 2."
         
-        # Contrôle 3 : classe et masque de classe (obtenir_masque_classe de network.py)
-        classe, masque_classe = NetworkCalculator.get_mask_class(ip)
-        if masque_classe == "N/A":
+        # Contrôle 3 : classe et masque de classe (obtenir_class_mask de network.py)
+        classe, class_mask = NetworkCalculator.get_mask_class(ip)
+        if class_mask == "N/A":
             return None, f"Classe {classe} : pas de découpe possible."
-        prefixe_classe = masque_classe.count("255") * 8
+        prefix_class = class_mask.count("255") * 8
 
-        # Contrôle 4 : réseau de départ (calculer_ids_reseau de network.py)
-        res, err = NetworkCalculator.compute_adress_network(ip, masque_classe)
+        # Contrôle 4 : réseau de départ (calculer_ids_network de network.py)
+        res, err = NetworkCalculator.compute_adress_network(ip, class_mask)
         if err:
             return None, err
-        reseau_depart = res["reseau_classfull"]
+        first_network = res["network_classfull"]
 
-        # Étape E : nombre de plis (bits empruntés) et nouveau préfixe
-        bits = SubnetCalculator.calculer_bits_empruntes(nb_sr)
-        nouveau_prefixe = prefixe_classe + bits 
+        # Étape E : number de plis (bits empruntés) et nouveau préfixe
+        bits = SubnetCalculator.calculate_bits_boworred(nb_sr)
+        new_prefix = prefix_class + bits 
         # a partir de /31 n'y a plus d'espace 
-        if nouveau_prefixe > 30:
+        if new_prefix > 30:
             return None, "Impossible : trop de sous-réseaux pour cette classe."
         
-        # Étape F : taille d'un SR, nouveau masque, max machines /19
+        # Étape F : size d'un SR, nouveau masque, max machines /19
         #32 − 19 = 13, puis 2¹³ → 8192
-        taille_sr = 2 ** (32 - nouveau_prefixe)
-        nouveau_masque = SubnetCalculator.prefixe_vers_masque(nouveau_prefixe)
-        max_machines = taille_sr - 2
+        size_sr = 2 ** (32 - new_prefix)
+        new_mask = SubnetCalculator.prefix_into_mask(new_prefix)
+        max_machines = size_sr - 2
 
         # Étape G : on découpe les morceaux un par un
         nb_sr_reels = 2 ** bits
-        debut = SubnetCalculator.ip_vers_entier(reseau_depart)
-        sous_reseaux = []
+        first = SubnetCalculator.ip_into_natural(first_network)
+        under_network = []
 
         # On ne calcule que les 256 premiers SR : au-delà, la liste serait
         # trop longue pour être affichée (ex : 4 millions de SR en classe A)
         # et la fenêtre se figerait. Le résumé, lui, reste complet.
-        nb_affiches = min(nb_sr_reels, 256)
-        for i in range(nb_affiches):
-            adresse_reseau = debut + i * taille_sr
-            broadcast = adresse_reseau + taille_sr - 1
-            sous_reseaux.append({
-                "numero": i + 1,
-                "reseau": SubnetCalculator.entier_vers_ip(adresse_reseau),
-                "premiere": SubnetCalculator.entier_vers_ip(adresse_reseau + 1),
-                "derniere": SubnetCalculator.entier_vers_ip(broadcast - 1),
-                "broadcast": SubnetCalculator.entier_vers_ip(broadcast),
+        nb_showed = min(nb_sr_reels, 256)
+        for i in range(nb_showed):
+            adress_network = first + i * size_sr
+            broadcast = adress_network + size_sr - 1
+            under_network.append({
+                "number": i + 1,
+                "network": SubnetCalculator.natural_into_ip(adress_network),
+                "first": SubnetCalculator.natural_into_ip(adress_network + 1),
+                "last": SubnetCalculator.natural_into_ip(broadcast - 1),
+                "broadcast": SubnetCalculator.natural_into_ip(broadcast),
             })
 
         # Résultat final : le résumé + la liste des sous-réseaux
-        resultat = {
+        result = {
             "classe": classe,
-            "reseau": reseau_depart,
-            "masque_classe": masque_classe,
-            "nb_sr_demandes": nb_sr,
-            "bits_empruntes": bits,
-            "nouveau_prefixe": nouveau_prefixe,
-            "nouveau_masque": nouveau_masque,
+            "network": first_network,
+            "class_mask": class_mask,
+            "nb_sr_asked": nb_sr,
+            "bits_boworred": bits,
+            "new_prefix": new_prefix,
+            "new_mask": new_mask,
             "nb_sr_reels": nb_sr_reels,
             "max_machines": max_machines,
-            "sous_reseaux": sous_reseaux,
-            "nb_sr_affiches": nb_affiches,       # combien de SR sont dans la liste
+            "under_network": under_network,
+            "nb_sr_showed": nb_showed,       # combien de SR sont dans la liste
         }
-        return resultat, None
+        return result, None

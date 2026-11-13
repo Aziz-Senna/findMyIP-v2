@@ -2,7 +2,7 @@ class NetworkCalculator:
     
     @staticmethod
     def generate_datas_masks():
-        list_masques = []
+        list_masks = []
         
         for i in range(8, 31):
             binary_mask = ""
@@ -17,12 +17,12 @@ class NetworkCalculator:
                 if (bit+1)%8 == 0 and bit < 31:
                     binary_mask += "."
                 
-            list_masques.append({
+            list_masks.append({
                 "prefixe": f"/{i:02d}",
                 "binaire": binary_mask,
                 "decimal": ".".join(str(part) for part in decimal_parts)
             })
-        return list_masques
+        return list_masks
 
     #Initialement, la méthode retourne un bool mais on retourne plutôt l'erreur en string.
     @staticmethod
@@ -128,9 +128,9 @@ class NetworkCalculator:
             subnet_id = ".".join(str(ip_bytes[i] & mask_bytes[i]) for i in range(4))
 
             return {
-                "classe": classe,
-                "reseau_classfull": net_id,
-                "sous_reseau": subnet_id
+                "class": classe,
+                "network_classfull": net_id,
+                "under_network": subnet_id
             }, None        
         except Exception as e:
             return None, f"Erreur de calcul : {e}"
